@@ -1,0 +1,20 @@
+name = "fitness-webapp"
+compatibility_date = "2024-12-18"
+main = "workers/api/index.ts"
+
+[env.development]
+DATABASE_URL = "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/d1/database/YOUR_DATABASE_ID"
+
+[env.production]
+DATABASE_URL = "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/d1/database/YOUR_DATABASE_ID"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "fitness-app-db"
+database_id = "YOUR_DATABASE_ID"
+
+[build]
+command = "npm run build"
+
+[vars]
+ENVIRONMENT = "development"
