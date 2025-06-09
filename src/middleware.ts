@@ -13,6 +13,7 @@ const isProtectedRoute = createRouteMatcher([
 ])
 
 export default clerkMiddleware(async (auth, req) => {
+  // auth()를 await해서 sessionClaims 업데이트를 보장
   const { userId, sessionClaims } = await auth()
   
   console.log(`[MIDDLEWARE] ${req.method} ${req.nextUrl.pathname}`)
@@ -33,8 +34,18 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(signInUrl)
   }
 
-  // Get user role from session claims (using publicMetadata for consistency)
-  const userRole = (sessionClaims?.publicMetadata as any)?.role as string
+  // Get user role from session claims - 여러 방법으로 시도
+  let userRole = (sessionClaims?.publicMetadata as any)?.role as string
+  
+  // sessionClaims가 비어있으면 role query parameter 확인 (임시 해결책)
+  if (!userRole) {
+    const urlRole = req.nextUrl.searchParams.get('role')
+    if (urlRole && ['trainer', 'member'].includes(urlRole)) {
+      userRole = urlRole
+      console.log(`[MIDDLEWARE] Using role from URL parameter: ${userRole}`)
+    }
+  }
+  
   console.log(`[MIDDLEWARE] userRole from sessionClaims: ${userRole || 'undefined'}`)
   console.log(`[MIDDLEWARE] full sessionClaims.publicMetadata:`, sessionClaims?.publicMetadata)
 
@@ -77,7 +88,7 @@ export default clerkMiddleware(async (auth, req) => {
 export const config = {
   matcher: [
     // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|zip|webmanifest)).*)',
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
     // Always run for API routes
     '/(api|trpc)(.*)',
   ],

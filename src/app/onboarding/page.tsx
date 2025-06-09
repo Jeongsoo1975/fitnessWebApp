@@ -83,18 +83,18 @@ export default function OnboardingPage() {
       performanceLogger.logRoleUpdate(selectedRole, updateDuration || undefined)
       performanceLogger.endTimer('role-update-total')
       
-      console.log('[ONBOARDING] Role update successful, waiting for user to reload...')
+      console.log('[ONBOARDING] Role update successful')
       
-      // Wait a bit for the metadata to propagate, then reload the user
-      setTimeout(async () => {
-        await user.reload()
-        console.log('[ONBOARDING] User reloaded, new role:', user.publicMetadata?.role)
-        
-        // Navigate to appropriate dashboard
-        const targetUrl = selectedRole === 'trainer' ? '/trainer/dashboard' : '/member/dashboard'
-        console.log('[ONBOARDING] Navigating to:', targetUrl)
-        router.push(targetUrl)
-      }, 1000) // Wait 1 second for metadata to propagate
+      // sessionClaims가 업데이트되는데 시간이 걸리므로 
+      // URL parameter로 role을 전달하여 middleware에서 임시로 사용
+      const targetUrl = selectedRole === 'trainer' 
+        ? `/trainer/dashboard?role=${selectedRole}` 
+        : `/member/dashboard?role=${selectedRole}`
+      
+      console.log('[ONBOARDING] Navigating to:', targetUrl)
+      
+      // 페이지 전체 새로고침으로 sessionClaims 강제 업데이트
+      window.location.href = targetUrl
       
     } catch (error) {
       console.error('[ONBOARDING] Failed to update user role:', error)
