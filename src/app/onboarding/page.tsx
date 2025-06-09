@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { performanceLogger } from '@/lib/performance'
 
 export const dynamic = 'force-dynamic'
@@ -12,31 +12,43 @@ type UserRole = 'trainer' | 'member'
 export default function OnboardingPage() {
   const { user, isLoaded, isSignedIn } = useUser()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+
+  // URL parameter로 강제 onboarding 모드 확인
+  const forceOnboarding = searchParams.get('force') === 'true'
 
   console.log('[ONBOARDING] Component rendered')
   console.log('[ONBOARDING] isLoaded:', isLoaded)
   console.log('[ONBOARDING] isSignedIn:', isSignedIn)
   console.log('[ONBOARDING] user role:', user?.publicMetadata?.role)
+  console.log('[ONBOARDING] forceOnboarding:', forceOnboarding)
 
   // 개발용 localStorage 초기화 함수
   const resetLocalStorage = () => {
     localStorage.removeItem('userRole')
     console.log('[ONBOARDING] localStorage cleared')
-    window.location.reload()
+    // force=true parameter로 onboarding 페이지에 머무르도록 함
+    window.location.href = '/onboarding?force=true'
   }
 
   // Check authentication status and redirect if necessary
   useEffect(() => {
     console.log('[ONBOARDING] useEffect triggered')
-    console.log('[ONBOARDING] isLoaded:', isLoaded, 'isSignedIn:', isSignedIn)
+    console.log('[ONBOARDING] isLoaded:', isLoaded, 'isSignedIn:', isSignedIn, 'forceOnboarding:', forceOnboarding)
     
     if (isLoaded) {
       // If not signed in, redirect to sign-up
       if (!isSignedIn) {
         console.log('[ONBOARDING] Not signed in, redirecting to sign-up')
         router.push('/sign-up')
+        return
+      }
+
+      // forceOnboarding이 true면 기존 역할 무시하고 onboarding 진행
+      if (forceOnboarding) {
+        console.log('[ONBOARDING] Force onboarding mode - staying on onboarding page')
         return
       }
 
@@ -58,7 +70,7 @@ export default function OnboardingPage() {
       
       console.log('[ONBOARDING] User is signed in but has no role, staying on onboarding')
     }
-  }, [isLoaded, isSignedIn, user, router])
+  }, [isLoaded, isSignedIn, user, router, forceOnboarding])
 
   const handleRoleSelection = async () => {
     if (!selectedRole || !user || !isSignedIn) return
@@ -150,12 +162,12 @@ export default function OnboardingPage() {
     )
   }
 
-  // Check localStorage for existing role
+  // Check localStorage for existing role (단, forceOnboarding이 아닐 때만)
   const storedRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') as UserRole | null : null
   const userRole = user?.publicMetadata?.role as UserRole || storedRole
 
-  // If user already has a role, show loading state (will redirect via useEffect)
-  if (userRole) {
+  // If user already has a role and not forcing onboarding, show loading state (will redirect via useEffect)
+  if (userRole && !forceOnboarding) {
     console.log('[ONBOARDING] Showing loading state - User has role, should redirect')
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -181,6 +193,11 @@ export default function OnboardingPage() {
             >
               [개발용] localStorage 초기화
             </button>
+            {storedRole && (
+              <p className="text-xs text-gray-500 mt-1">
+                현재 저장된 역할: {storedRole}
+              </p>
+            )}
           </div>
         )}
 
@@ -191,6 +208,11 @@ export default function OnboardingPage() {
           <p className="mt-2 text-gray-600">
             FitnessWebApp을 시작하기 위해 역할을 선택하세요
           </p>
+          {forceOnboarding && (
+            <p className="mt-2 text-xs text-orange-600">
+              강제 onboarding 모드
+            </p>
+          )}
         </div>
 
         <div className="space-y-4">
