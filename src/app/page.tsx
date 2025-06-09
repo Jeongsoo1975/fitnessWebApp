@@ -1,4 +1,3 @@
-import { redirectBasedOnRole } from '@/lib/auth'
 import { auth } from '@clerk/nextjs/server'
 import Link from 'next/link'
 
@@ -7,10 +6,8 @@ export const dynamic = 'force-dynamic'
 export default async function HomePage() {
   const { userId } = await auth()
   
-  // If user is authenticated, redirect to appropriate dashboard
-  if (userId) {
-    await redirectBasedOnRole()
-  }
+  // 인증된 사용자는 middleware에서 자동으로 리디렉션됨
+  // 여기서는 리디렉션하지 않음
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gradient-to-br from-blue-50 to-indigo-100">
