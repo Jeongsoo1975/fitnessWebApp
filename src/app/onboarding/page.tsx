@@ -134,7 +134,14 @@ export default function OnboardingPage() {
         })
 
         if (!response.ok) {
-          const errorData = await response.json()
+          let errorData = { message: `API request failed with status ${response.status}` };
+          try {
+            // 서버가 JSON 에러를 보냈을 경우를 대비해 파싱 시도
+            errorData = await response.json();
+          } catch (e) {
+            // 파싱에 실패하면 서버가 HTML 등 다른 형식으로 응답한 것
+            console.error("Failed to parse API error response as JSON.", e);
+          }
           console.error('[ONBOARDING] API error:', errorData)
           // API 실패해도 localStorage는 유지
           console.log('[ONBOARDING] API failed but localStorage role is preserved')
