@@ -45,33 +45,38 @@ export default function OnboardingPage() {
     try {
       performanceLogger.startTimer('role-update-total')
       
-      // Optimistic navigation - redirect immediately for better UX
-      const targetUrl = selectedRole === 'trainer' ? '/trainer/dashboard' : '/member/dashboard'
-      
-      // Log navigation for performance tracking
-      performanceLogger.logNavigation('/onboarding', targetUrl)
-      
-      // Show immediate feedback
-      router.push(targetUrl)
-      
-      // Update user metadata in background using publicMetadata for faster updates
+      // Update user metadata using API route
       const updateDuration = await performanceLogger.measureAsync('clerk-metadata-update', async () => {
-        await user.update({
-          publicMetadata: {
-            role: selectedRole
-          }
+        const response = await fetch('/api/user/role', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ role: selectedRole }),
         })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to update role')
+        }
+
+        return await response.json()
       })
       
       performanceLogger.logRoleUpdate(selectedRole, updateDuration || undefined)
       performanceLogger.endTimer('role-update-total')
       
+      // Navigate to appropriate dashboard after successful update
+      const targetUrl = selectedRole === 'trainer' ? '/trainer/dashboard' : '/member/dashboard'
+      performanceLogger.logNavigation('/onboarding', targetUrl)
+      
+      // Force page reload to refresh user data from Clerk
+      window.location.href = targetUrl
+      
     } catch (error) {
       console.error('Failed to update user role:', error)
       performanceLogger.endTimer('role-update-total')
       
-      // Rollback on error - redirect back to onboarding
-      router.push('/onboarding')
       setIsLoading(false)
       
       // Show error message to user
