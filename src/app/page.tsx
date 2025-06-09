@@ -29,45 +29,72 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-            {/* Features */}
-            <div className="bg-white p-6 rounded-xl shadow-lg">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                </svg>
+            {/* Trainer Card */}
+            <Link href="/sign-up" className="group">
+              <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent group-hover:border-blue-200">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">트레이너</h3>
+                <p className="text-gray-600 text-sm mb-4">
+                  회원 관리, PT 세션 진행, 운동 계획 수립
+                </p>
+                <div className="text-center">
+                  <span className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md group-hover:bg-blue-700 transition-colors">
+                    트레이너로 시작하기
+                    <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </span>
+                </div>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">트레이너</h3>
-              <p className="text-gray-600 text-sm">
-                회원 관리, PT 세션 진행, 운동 계획 수립
-              </p>
-            </div>
+            </Link>
 
-            <div className="bg-white p-6 rounded-xl shadow-lg">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+            {/* Member Card */}
+            <Link href="/sign-up" className="group">
+              <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-transparent group-hover:border-green-200">
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">회원</h3>
+                <p className="text-gray-600 text-sm mb-4">
+                  운동 기록, 식단 관리, 진행 현황 추적
+                </p>
+                <div className="text-center">
+                  <span className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md group-hover:bg-green-700 transition-colors">
+                    회원으로 시작하기
+                    <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </span>
+                </div>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">회원</h3>
-              <p className="text-gray-600 text-sm">
-                운동 기록, 식단 관리, 진행 현황 추적
-              </p>
-            </div>
+            </Link>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/sign-up"
-              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
-            >
-              시작하기
-            </Link>
-            <Link
-              href="/sign-in"
-              className="px-8 py-3 border border-gray-300 hover:border-gray-400 text-gray-700 font-medium rounded-lg transition-colors"
-            >
-              로그인
-            </Link>
+          <div className="space-y-4">
+            <p className="text-gray-700 text-center">
+              역할을 선택하여 바로 시작하거나, 아래에서 일반 회원가입을 진행하세요
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/sign-up"
+                className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+              >
+                회원가입하기
+              </Link>
+              <Link
+                href="/sign-in"
+                className="px-8 py-3 border border-gray-300 hover:border-gray-400 text-gray-700 font-medium rounded-lg transition-colors"
+              >
+                로그인
+              </Link>
+            </div>
           </div>
 
           <div className="text-sm text-gray-500">
