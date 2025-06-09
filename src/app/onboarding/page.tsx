@@ -20,6 +20,13 @@ export default function OnboardingPage() {
   console.log('[ONBOARDING] isSignedIn:', isSignedIn)
   console.log('[ONBOARDING] user role:', user?.publicMetadata?.role)
 
+  // 개발용 localStorage 초기화 함수
+  const resetLocalStorage = () => {
+    localStorage.removeItem('userRole')
+    console.log('[ONBOARDING] localStorage cleared')
+    window.location.reload()
+  }
+
   // Check authentication status and redirect if necessary
   useEffect(() => {
     console.log('[ONBOARDING] useEffect triggered')
@@ -165,6 +172,18 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="max-w-md w-full space-y-8 p-8">
+        {/* 개발용 리셋 버튼 */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="text-center">
+            <button
+              onClick={resetLocalStorage}
+              className="text-xs text-red-500 hover:text-red-700 underline"
+            >
+              [개발용] localStorage 초기화
+            </button>
+          </div>
+        )}
+
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-900">
             역할을 선택해주세요
