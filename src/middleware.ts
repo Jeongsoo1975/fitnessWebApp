@@ -35,7 +35,8 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Get user role from session claims (using publicMetadata for consistency)
   const userRole = (sessionClaims?.publicMetadata as any)?.role as string
-  console.log(`[MIDDLEWARE] userRole: ${userRole || 'undefined'}`)
+  console.log(`[MIDDLEWARE] userRole from sessionClaims: ${userRole || 'undefined'}`)
+  console.log(`[MIDDLEWARE] full sessionClaims.publicMetadata:`, sessionClaims?.publicMetadata)
 
   // Handle root redirect for authenticated users
   if (req.nextUrl.pathname === '/') {
@@ -59,13 +60,13 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Check trainer route access
   if (isTrainerRoute(req) && userRole !== 'trainer') {
-    console.log(`[MIDDLEWARE] Trainer route access denied, redirecting to unauthorized`)
+    console.log(`[MIDDLEWARE] Trainer route access denied for role: ${userRole}, redirecting to unauthorized`)
     return NextResponse.redirect(new URL('/unauthorized', req.url))
   }
 
   // Check member route access
   if (isMemberRoute(req) && userRole !== 'member') {
-    console.log(`[MIDDLEWARE] Member route access denied, redirecting to unauthorized`)
+    console.log(`[MIDDLEWARE] Member route access denied for role: ${userRole}, redirecting to unauthorized`)
     return NextResponse.redirect(new URL('/unauthorized', req.url))
   }
 
@@ -76,7 +77,7 @@ export default clerkMiddleware(async (auth, req) => {
 export const config = {
   matcher: [
     // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|zip|webmanifest)).*)',
     // Always run for API routes
     '/(api|trpc)(.*)',
   ],

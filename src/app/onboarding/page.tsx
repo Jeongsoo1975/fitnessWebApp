@@ -83,13 +83,18 @@ export default function OnboardingPage() {
       performanceLogger.logRoleUpdate(selectedRole, updateDuration || undefined)
       performanceLogger.endTimer('role-update-total')
       
-      // Navigate to appropriate dashboard after successful update
-      const targetUrl = selectedRole === 'trainer' ? '/trainer/dashboard' : '/member/dashboard'
-      performanceLogger.logNavigation('/onboarding', targetUrl)
+      console.log('[ONBOARDING] Role update successful, waiting for user to reload...')
       
-      console.log('[ONBOARDING] Redirecting to:', targetUrl)
-      // Force page reload to refresh user data from Clerk
-      window.location.href = targetUrl
+      // Wait a bit for the metadata to propagate, then reload the user
+      setTimeout(async () => {
+        await user.reload()
+        console.log('[ONBOARDING] User reloaded, new role:', user.publicMetadata?.role)
+        
+        // Navigate to appropriate dashboard
+        const targetUrl = selectedRole === 'trainer' ? '/trainer/dashboard' : '/member/dashboard'
+        console.log('[ONBOARDING] Navigating to:', targetUrl)
+        router.push(targetUrl)
+      }, 1000) // Wait 1 second for metadata to propagate
       
     } catch (error) {
       console.error('[ONBOARDING] Failed to update user role:', error)
