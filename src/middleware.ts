@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 const isTrainerRoute = createRouteMatcher(['/trainer(.*)'])
 const isMemberRoute = createRouteMatcher(['/member(.*)'])
 const isProtectedRoute = createRouteMatcher([
+  '/', // 1. 루트 경로 추가 - 인증된 사용자의 대시보드 리디렉션을 위해
   '/trainer(.*)', 
   '/member(.*)', 
   '/profile(.*)',
@@ -29,8 +30,18 @@ export default clerkMiddleware(async (auth, req) => {
   // Get user role from session claims (using publicMetadata for consistency)
   const userRole = (sessionClaims?.publicMetadata as any)?.role as string
 
-  // Redirect to onboarding if no role is set
-  if (!userRole) {
+  // Handle root redirect for authenticated users
+  if (req.nextUrl.pathname === '/') {
+    if (userRole === 'trainer') {
+      return NextResponse.redirect(new URL('/trainer/dashboard', req.url))
+    } else if (userRole === 'member') {
+      return NextResponse.redirect(new URL('/member/dashboard', req.url))
+    }
+    // If authenticated but no role, they will be sent to onboarding next.
+  }
+
+  // Redirect to onboarding if no role is set and not already on onboarding
+  if (!userRole && req.nextUrl.pathname !== '/onboarding') { // 2. 무한 루프 방지
     return NextResponse.redirect(new URL('/onboarding', req.url))
   }
 
@@ -42,15 +53,6 @@ export default clerkMiddleware(async (auth, req) => {
   // Check member route access
   if (isMemberRoute(req) && userRole !== 'member') {
     return NextResponse.redirect(new URL('/unauthorized', req.url))
-  }
-
-  // Redirect root to appropriate dashboard
-  if (req.nextUrl.pathname === '/') {
-    if (userRole === 'trainer') {
-      return NextResponse.redirect(new URL('/trainer/dashboard', req.url))
-    } else if (userRole === 'member') {
-      return NextResponse.redirect(new URL('/member/dashboard', req.url))
-    }
   }
 
   return NextResponse.next()
