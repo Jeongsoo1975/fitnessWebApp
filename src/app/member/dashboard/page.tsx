@@ -62,26 +62,28 @@ export default function MemberDashboard() {
   return (
     <DashboardLayout>
       {/* Welcome Section */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">안녕하세요! 💪</h1>
-        <p className="text-gray-600 mt-1">오늘도 건강한 하루를 시작해보세요.</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">안녕하세요! 💪</h1>
+        <p className="text-gray-600 mt-1 text-sm sm:text-base">오늘도 건강한 하루를 시작해보세요.</p>
         {process.env.NODE_ENV === 'development' && (
-          <p className="text-xs text-gray-500 mt-2">
+          <p className="text-xs text-gray-400 mt-2">
             현재 역할: {localStorage.getItem('userRole') || user?.publicMetadata?.role || 'unknown'}
           </p>
         )}
       </div>
 
-      {/* Quick Stats */}
-      <div className="mb-8">
+      {/* Quick Stats - 모바일 우선 반응형 그리드 */}
+      <div className="mb-6 sm:mb-8">
         <MemberStats />
       </div>
 
       {/* Progress Overview */}
-      <ProgressOverview 
-        progress={progressData}
-        onViewReport={handleViewReport}
-      />
+      <div className="space-y-6 sm:space-y-8">
+        <ProgressOverview 
+          progress={progressData}
+          onViewReport={handleViewReport}
+        />
+      </div>
     </DashboardLayout>
   )
 }

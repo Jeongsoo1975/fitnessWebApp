@@ -16,25 +16,25 @@ async function TrainerDashboardContent() {
   return (
     <>
       {/* Welcome Section */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">환영합니다! 👋</h1>
-        <p className="text-gray-600 mt-1">오늘도 회원들의 건강한 변화를 도와주세요.</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">환영합니다! 👋</h1>
+        <p className="text-gray-600 mt-1 text-sm sm:text-base">오늘도 회원들의 건강한 변화를 도와주세요.</p>
       </div>
 
-      {/* Quick Stats - Suspense로 감싸서 개별 로딩 */}
-      <div className="mb-8">
+      {/* Quick Stats - 모바일 우선 반응형 그리드 */}
+      <div className="mb-6 sm:mb-8">
         <TrainerStats />
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Content - 모바일에서 세로 스택, 데스크탑에서 그리드 */}
+      <div className="space-y-6 sm:space-y-8 lg:grid lg:grid-cols-3 lg:gap-6 lg:space-y-0">
         {/* Today's Schedule */}
         <div className="lg:col-span-2">
           <TodaySchedule />
         </div>
 
         {/* Quick Actions & Recent Activity */}
-        <div className="space-y-6">
+        <div className="space-y-6 sm:space-y-8">
           <QuickActions />
           <RecentActivity />
         </div>
