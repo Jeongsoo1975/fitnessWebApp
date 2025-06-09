@@ -26,7 +26,7 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(signInUrl)
   }
 
-  // Get user role from session claims
+  // Get user role from session claims (using publicMetadata for consistency)
   const userRole = (sessionClaims?.publicMetadata as any)?.role as string
 
   // Redirect to onboarding if no role is set

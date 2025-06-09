@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
+import { performanceLogger } from '@/lib/performance'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,8 +25,8 @@ export default function OnboardingPage() {
       }
 
       // If user already has a role, redirect to appropriate dashboard
-      if (user?.unsafeMetadata?.role) {
-        const userRole = user.unsafeMetadata.role as UserRole
+      if (user?.publicMetadata?.role) {
+        const userRole = user.publicMetadata.role as UserRole
         if (userRole === 'trainer') {
           router.push('/trainer/dashboard')
         } else {
@@ -42,22 +43,39 @@ export default function OnboardingPage() {
     setIsLoading(true)
     
     try {
-      // Update user metadata with selected role
-      await (user as any).update({
-        unsafeMetadata: {
-          role: selectedRole
-        }
+      performanceLogger.startTimer('role-update-total')
+      
+      // Optimistic navigation - redirect immediately for better UX
+      const targetUrl = selectedRole === 'trainer' ? '/trainer/dashboard' : '/member/dashboard'
+      
+      // Log navigation for performance tracking
+      performanceLogger.logNavigation('/onboarding', targetUrl)
+      
+      // Show immediate feedback
+      router.push(targetUrl)
+      
+      // Update user metadata in background using publicMetadata for faster updates
+      const updateDuration = await performanceLogger.measureAsync('clerk-metadata-update', async () => {
+        await user.update({
+          publicMetadata: {
+            role: selectedRole
+          }
+        })
       })
-
-      // Redirect based on role
-      if (selectedRole === 'trainer') {
-        router.push('/trainer/dashboard')
-      } else {
-        router.push('/member/dashboard')
-      }
+      
+      performanceLogger.logRoleUpdate(selectedRole, updateDuration || undefined)
+      performanceLogger.endTimer('role-update-total')
+      
     } catch (error) {
       console.error('Failed to update user role:', error)
+      performanceLogger.endTimer('role-update-total')
+      
+      // Rollback on error - redirect back to onboarding
+      router.push('/onboarding')
       setIsLoading(false)
+      
+      // Show error message to user
+      alert('역할 설정에 실패했습니다. 다시 시도해주세요.')
     }
   }
 
@@ -86,7 +104,7 @@ export default function OnboardingPage() {
   }
 
   // If user already has a role, show loading state (will redirect via useEffect)
-  if (user?.unsafeMetadata?.role) {
+  if (user?.publicMetadata?.role) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

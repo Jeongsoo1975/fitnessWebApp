@@ -12,6 +12,7 @@ export function useUserRole(): {
 } {
   const { user, isLoaded } = useUser()
   
+  // Use publicMetadata for faster access and immediate updates
   const role = user?.publicMetadata?.role as UserRole | null
   
   return {
