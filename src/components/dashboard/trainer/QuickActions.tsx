@@ -58,21 +58,23 @@ export default function QuickActions() {
 
   return (
     <div className="bg-white shadow rounded-lg">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h3 className="text-lg font-medium text-gray-900">빠른 작업</h3>
+      <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+        <h3 className="text-lg sm:text-xl font-medium text-gray-900">빠른 작업</h3>
       </div>
-      <div className="p-6 space-y-3">
+      <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
         {actions.map((action) => (
           <button
             key={action.id}
             onClick={action.onClick}
-            className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full text-left p-4 sm:p-5 rounded-lg border border-gray-200 hover:bg-gray-50 active:bg-gray-100 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[56px] sm:min-h-[64px] touch-manipulation"
           >
             <div className="flex items-center">
-              <div className={action.iconColor}>
-                {action.icon}
+              <div className={`${action.iconColor} mr-3 sm:mr-4`}>
+                <div className="w-5 h-5 sm:w-6 sm:h-6">
+                  {action.icon}
+                </div>
               </div>
-              <span className="text-sm font-medium text-gray-900 ml-3">{action.label}</span>
+              <span className="text-sm sm:text-base font-medium text-gray-900">{action.label}</span>
             </div>
           </button>
         ))}
