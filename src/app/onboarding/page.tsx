@@ -233,7 +233,7 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="max-w-md w-full space-y-8 p-8">
+      <div className="max-w-sm sm:max-w-md w-full space-y-6 sm:space-y-8 p-4 sm:p-8">
         {/* 개발용 리셋 버튼 */}
         {process.env.NODE_ENV === 'development' && (
           <div className="text-center space-y-2">
@@ -252,35 +252,35 @@ export default function OnboardingPage() {
         )}
 
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
             역할을 선택해주세요
           </h2>
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 text-sm sm:text-base text-gray-600">
             FitnessWebApp을 시작하기 위해 역할을 선택하세요
           </p>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {/* Trainer Option */}
           <div 
-            className={`cursor-pointer p-6 border-2 rounded-lg transition-all ${
+            className={`cursor-pointer p-6 sm:p-8 border-2 rounded-lg transition-all min-h-[140px] sm:min-h-[160px] touch-manipulation ${
               selectedRole === 'trainer' 
                 ? 'border-blue-500 bg-blue-50' 
-                : 'border-gray-200 hover:border-gray-300'
+                : 'border-gray-200 hover:border-gray-300 active:border-gray-400'
             }`}
             onClick={() => setSelectedRole('trainer')}
           >
             <div className="flex items-center space-x-4">
               <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-100 rounded-full flex items-center justify-center">
+                  <svg className="w-7 h-7 sm:w-8 sm:h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-medium text-gray-900">트레이너</h3>
-                <p className="text-sm text-gray-500">
+                <h3 className="text-lg sm:text-xl font-medium text-gray-900">트레이너</h3>
+                <p className="text-sm sm:text-base text-gray-500 mt-1">
                   회원들의 운동과 식단을 관리하고 PT 세션을 진행합니다
                 </p>
               </div>
@@ -289,24 +289,24 @@ export default function OnboardingPage() {
 
           {/* Member Option */}
           <div 
-            className={`cursor-pointer p-6 border-2 rounded-lg transition-all ${
+            className={`cursor-pointer p-6 sm:p-8 border-2 rounded-lg transition-all min-h-[140px] sm:min-h-[160px] touch-manipulation ${
               selectedRole === 'member' 
                 ? 'border-green-500 bg-green-50' 
-                : 'border-gray-200 hover:border-gray-300'
+                : 'border-gray-200 hover:border-gray-300 active:border-gray-400'
             }`}
             onClick={() => setSelectedRole('member')}
           >
             <div className="flex items-center space-x-4">
               <div className="flex-shrink-0">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg className="w-7 h-7 sm:w-8 sm:h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                   </svg>
                 </div>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-medium text-gray-900">회원</h3>
-                <p className="text-sm text-gray-500">
+                <h3 className="text-lg sm:text-xl font-medium text-gray-900">회원</h3>
+                <p className="text-sm sm:text-base text-gray-500 mt-1">
                   개인 운동 계획을 따르고 건강한 라이프스타일을 관리합니다
                 </p>
               </div>
@@ -317,9 +317,9 @@ export default function OnboardingPage() {
         <button
           onClick={handleRoleSelection}
           disabled={!selectedRole || isLoading}
-          className={`w-full py-3 px-4 rounded-md font-medium transition-all ${
+          className={`w-full py-4 sm:py-5 px-4 rounded-md font-medium text-base sm:text-lg transition-all min-h-[48px] sm:min-h-[52px] touch-manipulation ${
             selectedRole && !isLoading
-              ? 'bg-blue-600 hover:bg-blue-700 text-white'
+              ? 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
