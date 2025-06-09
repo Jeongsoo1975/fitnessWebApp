@@ -15,13 +15,19 @@ const isProtectedRoute = createRouteMatcher([
 export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth()
   
+  console.log(`[MIDDLEWARE] ${req.method} ${req.nextUrl.pathname}`)
+  console.log(`[MIDDLEWARE] userId: ${userId ? 'exists' : 'null'}`)
+  console.log(`[MIDDLEWARE] isProtectedRoute: ${isProtectedRoute(req)}`)
+  
   // Allow public routes
   if (!isProtectedRoute(req)) {
+    console.log(`[MIDDLEWARE] Allowing public route: ${req.nextUrl.pathname}`)
     return NextResponse.next()
   }
 
   // Redirect to sign-in if not authenticated
   if (!userId) {
+    console.log(`[MIDDLEWARE] No userId, redirecting to sign-in`)
     const signInUrl = new URL('/sign-in', req.url)
     signInUrl.searchParams.set('redirect_url', req.url)
     return NextResponse.redirect(signInUrl)
@@ -29,32 +35,41 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Get user role from session claims (using publicMetadata for consistency)
   const userRole = (sessionClaims?.publicMetadata as any)?.role as string
+  console.log(`[MIDDLEWARE] userRole: ${userRole || 'undefined'}`)
 
   // Handle root redirect for authenticated users
   if (req.nextUrl.pathname === '/') {
+    console.log(`[MIDDLEWARE] Root path detected, userRole: ${userRole}`)
     if (userRole === 'trainer') {
+      console.log(`[MIDDLEWARE] Redirecting trainer to dashboard`)
       return NextResponse.redirect(new URL('/trainer/dashboard', req.url))
     } else if (userRole === 'member') {
+      console.log(`[MIDDLEWARE] Redirecting member to dashboard`)
       return NextResponse.redirect(new URL('/member/dashboard', req.url))
     }
     // If authenticated but no role, they will be sent to onboarding next.
+    console.log(`[MIDDLEWARE] User has no role, will check onboarding redirect`)
   }
 
   // Redirect to onboarding if no role is set and not already on onboarding
   if (!userRole && req.nextUrl.pathname !== '/onboarding') { // 2. 무한 루프 방지
+    console.log(`[MIDDLEWARE] No role and not on onboarding, redirecting to onboarding`)
     return NextResponse.redirect(new URL('/onboarding', req.url))
   }
 
   // Check trainer route access
   if (isTrainerRoute(req) && userRole !== 'trainer') {
+    console.log(`[MIDDLEWARE] Trainer route access denied, redirecting to unauthorized`)
     return NextResponse.redirect(new URL('/unauthorized', req.url))
   }
 
   // Check member route access
   if (isMemberRoute(req) && userRole !== 'member') {
+    console.log(`[MIDDLEWARE] Member route access denied, redirecting to unauthorized`)
     return NextResponse.redirect(new URL('/unauthorized', req.url))
   }
 
+  console.log(`[MIDDLEWARE] Allowing request to proceed: ${req.nextUrl.pathname}`)
   return NextResponse.next()
 })
 

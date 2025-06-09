@@ -15,11 +15,20 @@ export default function OnboardingPage() {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
+  console.log('[ONBOARDING] Component rendered')
+  console.log('[ONBOARDING] isLoaded:', isLoaded)
+  console.log('[ONBOARDING] isSignedIn:', isSignedIn)
+  console.log('[ONBOARDING] user role:', user?.publicMetadata?.role)
+
   // Check authentication status and redirect if necessary
   useEffect(() => {
+    console.log('[ONBOARDING] useEffect triggered')
+    console.log('[ONBOARDING] isLoaded:', isLoaded, 'isSignedIn:', isSignedIn)
+    
     if (isLoaded) {
       // If not signed in, redirect to sign-up
       if (!isSignedIn) {
+        console.log('[ONBOARDING] Not signed in, redirecting to sign-up')
         router.push('/sign-up')
         return
       }
@@ -27,6 +36,7 @@ export default function OnboardingPage() {
       // If user already has a role, redirect to appropriate dashboard
       if (user?.publicMetadata?.role) {
         const userRole = user.publicMetadata.role as UserRole
+        console.log('[ONBOARDING] User has role:', userRole, 'redirecting to dashboard')
         if (userRole === 'trainer') {
           router.push('/trainer/dashboard')
         } else {
@@ -34,12 +44,15 @@ export default function OnboardingPage() {
         }
         return
       }
+      
+      console.log('[ONBOARDING] User is signed in but has no role, staying on onboarding')
     }
   }, [isLoaded, isSignedIn, user, router])
 
   const handleRoleSelection = async () => {
     if (!selectedRole || !user || !isSignedIn) return
 
+    console.log('[ONBOARDING] Role selection started:', selectedRole)
     setIsLoading(true)
     
     try {
@@ -47,6 +60,7 @@ export default function OnboardingPage() {
       
       // Update user metadata using API route
       const updateDuration = await performanceLogger.measureAsync('clerk-metadata-update', async () => {
+        console.log('[ONBOARDING] Sending API request to update role')
         const response = await fetch('/api/user/role', {
           method: 'POST',
           headers: {
@@ -57,10 +71,13 @@ export default function OnboardingPage() {
 
         if (!response.ok) {
           const errorData = await response.json()
+          console.error('[ONBOARDING] API error:', errorData)
           throw new Error(errorData.error || 'Failed to update role')
         }
 
-        return await response.json()
+        const result = await response.json()
+        console.log('[ONBOARDING] API success:', result)
+        return result
       })
       
       performanceLogger.logRoleUpdate(selectedRole, updateDuration || undefined)
@@ -70,11 +87,12 @@ export default function OnboardingPage() {
       const targetUrl = selectedRole === 'trainer' ? '/trainer/dashboard' : '/member/dashboard'
       performanceLogger.logNavigation('/onboarding', targetUrl)
       
+      console.log('[ONBOARDING] Redirecting to:', targetUrl)
       // Force page reload to refresh user data from Clerk
       window.location.href = targetUrl
       
     } catch (error) {
-      console.error('Failed to update user role:', error)
+      console.error('[ONBOARDING] Failed to update user role:', error)
       performanceLogger.endTimer('role-update-total')
       
       setIsLoading(false)
@@ -86,6 +104,7 @@ export default function OnboardingPage() {
 
   // Show loading state while Clerk is initializing
   if (!isLoaded) {
+    console.log('[ONBOARDING] Showing loading state - Clerk not loaded')
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -98,6 +117,7 @@ export default function OnboardingPage() {
 
   // If not signed in, show loading state (will redirect via useEffect)
   if (!isSignedIn) {
+    console.log('[ONBOARDING] Showing loading state - Not signed in')
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -110,6 +130,7 @@ export default function OnboardingPage() {
 
   // If user already has a role, show loading state (will redirect via useEffect)
   if (user?.publicMetadata?.role) {
+    console.log('[ONBOARDING] Showing loading state - User has role, should redirect')
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -119,6 +140,8 @@ export default function OnboardingPage() {
       </div>
     )
   }
+
+  console.log('[ONBOARDING] Showing role selection form')
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
