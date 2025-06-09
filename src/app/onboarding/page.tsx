@@ -22,7 +22,7 @@ export default function OnboardingPage() {
     try {
       // Update user metadata with selected role
       await (user as any).update({
-        publicMetadata: {
+        unsafeMetadata: {
           role: selectedRole
         }
       })
