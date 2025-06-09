@@ -1,10 +1,23 @@
 import { requireRole } from '@/lib/auth'
 import DashboardLayout from '@/components/shared/layout'
+import ProgressOverview from '@/components/dashboard/ProgressOverview'
 
 export const dynamic = 'force-dynamic'
 
 export default async function MemberDashboard() {
   await requireRole('member')
+
+  // 진행 상황 데이터 (실제로는 API에서 가져올 데이터)
+  const progressData = {
+    weeklyGoal: { current: 4, target: 3 },
+    weightLoss: { current: 2.5, target: 5 },
+    attendance: { current: 12, target: 15 }
+  }
+
+  const handleViewReport = () => {
+    // 상세 리포트 페이지로 이동하는 로직
+    console.log('상세 리포트 보기 클릭됨')
+  }
   
   return (
     <DashboardLayout>
@@ -316,51 +329,11 @@ export default async function MemberDashboard() {
             </div>
           </div>
 
-          {/* Progress Chart Preview */}
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">진행 상황</h3>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-900">주간 운동 목표</span>
-                    <span className="text-sm text-gray-500">4/3회</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-green-600 h-2 rounded-full" style={{width: '100%'}}></div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-900">체중 감량 목표</span>
-                    <span className="text-sm text-gray-500">2.5/5kg</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-blue-600 h-2 rounded-full" style={{width: '50%'}}></div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-900">이번 달 출석</span>
-                    <span className="text-sm text-gray-500">12/15일</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-purple-600 h-2 rounded-full" style={{width: '80%'}}></div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <button className="w-full text-center text-sm text-blue-600 hover:text-blue-800 font-medium">
-                  상세 리포트 보기 →
-                </button>
-              </div>
-            </div>
-          </div>
+          {/* Progress Overview - 새로 만든 컴포넌트 사용 */}
+          <ProgressOverview 
+            progress={progressData}
+            onViewReport={handleViewReport}
+          />
         </div>
       </div>
     </DashboardLayout>
