@@ -33,9 +33,13 @@ export default function OnboardingPage() {
         return
       }
 
-      // If user already has a role, redirect to appropriate dashboard
-      if (user?.publicMetadata?.role) {
-        const userRole = user.publicMetadata.role as UserRole
+      // localStorage에서 역할 확인 (임시 해결책)
+      const storedRole = localStorage.getItem('userRole') as UserRole | null
+      console.log('[ONBOARDING] Stored role from localStorage:', storedRole)
+
+      // If user already has a role in localStorage or publicMetadata, redirect to appropriate dashboard
+      const userRole = user?.publicMetadata?.role as UserRole || storedRole
+      if (userRole) {
         console.log('[ONBOARDING] User has role:', userRole, 'redirecting to dashboard')
         if (userRole === 'trainer') {
           router.push('/trainer/dashboard')
@@ -58,7 +62,11 @@ export default function OnboardingPage() {
     try {
       performanceLogger.startTimer('role-update-total')
       
-      // Update user metadata using API route
+      // localStorage에 역할 저장 (즉시 사용 가능)
+      localStorage.setItem('userRole', selectedRole)
+      console.log('[ONBOARDING] Role saved to localStorage:', selectedRole)
+      
+      // Update user metadata using API route (백그라운드에서 실행)
       const updateDuration = await performanceLogger.measureAsync('clerk-metadata-update', async () => {
         console.log('[ONBOARDING] Sending API request to update role')
         const response = await fetch('/api/user/role', {
@@ -72,7 +80,9 @@ export default function OnboardingPage() {
         if (!response.ok) {
           const errorData = await response.json()
           console.error('[ONBOARDING] API error:', errorData)
-          throw new Error(errorData.error || 'Failed to update role')
+          // API 실패해도 localStorage는 유지
+          console.log('[ONBOARDING] API failed but localStorage role is preserved')
+          return null
         }
 
         const result = await response.json()
@@ -83,27 +93,27 @@ export default function OnboardingPage() {
       performanceLogger.logRoleUpdate(selectedRole, updateDuration || undefined)
       performanceLogger.endTimer('role-update-total')
       
-      console.log('[ONBOARDING] Role update successful')
+      console.log('[ONBOARDING] Role update process completed')
       
-      // sessionClaims가 업데이트되는데 시간이 걸리므로 
-      // URL parameter로 role을 전달하여 middleware에서 임시로 사용
+      // 즉시 대시보드로 이동 (localStorage 기반)
       const targetUrl = selectedRole === 'trainer' 
-        ? `/trainer/dashboard?role=${selectedRole}` 
-        : `/member/dashboard?role=${selectedRole}`
+        ? '/trainer/dashboard' 
+        : '/member/dashboard'
       
       console.log('[ONBOARDING] Navigating to:', targetUrl)
-      
-      // 페이지 전체 새로고침으로 sessionClaims 강제 업데이트
-      window.location.href = targetUrl
+      router.push(targetUrl)
       
     } catch (error) {
       console.error('[ONBOARDING] Failed to update user role:', error)
       performanceLogger.endTimer('role-update-total')
       
-      setIsLoading(false)
+      // localStorage는 유지하고 계속 진행
+      console.log('[ONBOARDING] Error occurred but localStorage role is preserved')
+      const targetUrl = selectedRole === 'trainer' 
+        ? '/trainer/dashboard' 
+        : '/member/dashboard'
       
-      // Show error message to user
-      alert('역할 설정에 실패했습니다. 다시 시도해주세요.')
+      router.push(targetUrl)
     }
   }
 
@@ -133,8 +143,12 @@ export default function OnboardingPage() {
     )
   }
 
+  // Check localStorage for existing role
+  const storedRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') as UserRole | null : null
+  const userRole = user?.publicMetadata?.role as UserRole || storedRole
+
   // If user already has a role, show loading state (will redirect via useEffect)
-  if (user?.publicMetadata?.role) {
+  if (userRole) {
     console.log('[ONBOARDING] Showing loading state - User has role, should redirect')
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">

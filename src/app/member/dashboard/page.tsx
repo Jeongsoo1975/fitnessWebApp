@@ -1,11 +1,48 @@
-import { requireRole } from '@/lib/auth'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useUser } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
 import DashboardLayout from '@/components/shared/layout'
 import ProgressOverview from '@/components/dashboard/ProgressOverview'
 
 export const dynamic = 'force-dynamic'
 
-export default async function MemberDashboard() {
-  await requireRole('member')
+export default function MemberDashboard() {
+  const { user, isLoaded, isSignedIn } = useUser()
+  const router = useRouter()
+  const [isAuthorized, setIsAuthorized] = useState(false)
+
+  useEffect(() => {
+    if (isLoaded) {
+      if (!isSignedIn) {
+        router.push('/sign-in')
+        return
+      }
+
+      // localStorage에서 역할 확인
+      const storedRole = localStorage.getItem('userRole')
+      const userRole = user?.publicMetadata?.role || storedRole
+
+      console.log('[MEMBER_DASHBOARD] User role:', userRole)
+      console.log('[MEMBER_DASHBOARD] Stored role:', storedRole)
+
+      if (!userRole) {
+        console.log('[MEMBER_DASHBOARD] No role found, redirecting to onboarding')
+        router.push('/onboarding')
+        return
+      }
+
+      if (userRole !== 'member') {
+        console.log('[MEMBER_DASHBOARD] Not a member, redirecting to trainer dashboard')
+        router.push('/trainer/dashboard')
+        return
+      }
+
+      console.log('[MEMBER_DASHBOARD] Member access authorized')
+      setIsAuthorized(true)
+    }
+  }, [isLoaded, isSignedIn, user, router])
 
   // 진행 상황 데이터 (실제로는 API에서 가져올 데이터)
   const progressData = {
@@ -17,6 +54,17 @@ export default async function MemberDashboard() {
   const handleViewReport = () => {
     // 상세 리포트 페이지로 이동하는 로직
     console.log('상세 리포트 보기 클릭됨')
+  }
+
+  if (!isLoaded || !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">대시보드 로딩 중...</p>
+        </div>
+      </div>
+    )
   }
   
   return (

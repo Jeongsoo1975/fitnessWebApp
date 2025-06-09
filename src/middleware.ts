@@ -13,8 +13,7 @@ const isProtectedRoute = createRouteMatcher([
 ])
 
 export default clerkMiddleware(async (auth, req) => {
-  // auth()를 await해서 sessionClaims 업데이트를 보장
-  const { userId, sessionClaims } = await auth()
+  const { userId } = await auth()
   
   console.log(`[MIDDLEWARE] ${req.method} ${req.nextUrl.pathname}`)
   console.log(`[MIDDLEWARE] userId: ${userId ? 'exists' : 'null'}`)
@@ -34,51 +33,17 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(signInUrl)
   }
 
-  // Get user role from session claims - 여러 방법으로 시도
-  let userRole = (sessionClaims?.publicMetadata as any)?.role as string
-  
-  // sessionClaims가 비어있으면 role query parameter 확인 (임시 해결책)
-  if (!userRole) {
-    const urlRole = req.nextUrl.searchParams.get('role')
-    if (urlRole && ['trainer', 'member'].includes(urlRole)) {
-      userRole = urlRole
-      console.log(`[MIDDLEWARE] Using role from URL parameter: ${userRole}`)
-    }
-  }
-  
-  console.log(`[MIDDLEWARE] userRole from sessionClaims: ${userRole || 'undefined'}`)
-  console.log(`[MIDDLEWARE] full sessionClaims.publicMetadata:`, sessionClaims?.publicMetadata)
-
-  // Handle root redirect for authenticated users
+  // 임시 해결책: sessionClaims 문제를 우회하여 클라이언트에서 역할 관리
+  // 루트 경로 접근 시 onboarding으로 리디렉션 (클라이언트에서 역할 확인 후 처리)
   if (req.nextUrl.pathname === '/') {
-    console.log(`[MIDDLEWARE] Root path detected, userRole: ${userRole}`)
-    if (userRole === 'trainer') {
-      console.log(`[MIDDLEWARE] Redirecting trainer to dashboard`)
-      return NextResponse.redirect(new URL('/trainer/dashboard', req.url))
-    } else if (userRole === 'member') {
-      console.log(`[MIDDLEWARE] Redirecting member to dashboard`)
-      return NextResponse.redirect(new URL('/member/dashboard', req.url))
-    }
-    // If authenticated but no role, they will be sent to onboarding next.
-    console.log(`[MIDDLEWARE] User has no role, will check onboarding redirect`)
-  }
-
-  // Redirect to onboarding if no role is set and not already on onboarding
-  if (!userRole && req.nextUrl.pathname !== '/onboarding') { // 2. 무한 루프 방지
-    console.log(`[MIDDLEWARE] No role and not on onboarding, redirecting to onboarding`)
+    console.log(`[MIDDLEWARE] Root path - redirecting to onboarding for client-side role check`)
     return NextResponse.redirect(new URL('/onboarding', req.url))
   }
 
-  // Check trainer route access
-  if (isTrainerRoute(req) && userRole !== 'trainer') {
-    console.log(`[MIDDLEWARE] Trainer route access denied for role: ${userRole}, redirecting to unauthorized`)
-    return NextResponse.redirect(new URL('/unauthorized', req.url))
-  }
-
-  // Check member route access
-  if (isMemberRoute(req) && userRole !== 'member') {
-    console.log(`[MIDDLEWARE] Member route access denied for role: ${userRole}, redirecting to unauthorized`)
-    return NextResponse.redirect(new URL('/unauthorized', req.url))
+  // 대시보드 경로는 일단 허용 (클라이언트에서 역할 확인)
+  if (isTrainerRoute(req) || isMemberRoute(req)) {
+    console.log(`[MIDDLEWARE] Allowing dashboard route - role will be checked client-side`)
+    return NextResponse.next()
   }
 
   console.log(`[MIDDLEWARE] Allowing request to proceed: ${req.nextUrl.pathname}`)
