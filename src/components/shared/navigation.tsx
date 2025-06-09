@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
 import { useUserRole } from '@/hooks/useAuth'
+import MobileNavigation from './MobileNavigation'
 
 interface NavigationItem {
   name: string
@@ -137,7 +138,14 @@ export default function Navigation({ children }: NavigationProps) {
   }))
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
+      {/* 모바일 네비게이션 */}
+      <MobileNavigation>
+        {children}
+      </MobileNavigation>
+      
+      {/* 데스크탑 네비게이션 */}
+      <div className="hidden lg:block min-h-screen bg-gray-50">
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
@@ -216,8 +224,8 @@ export default function Navigation({ children }: NavigationProps) {
 
       {/* Main content */}
       <div className="lg:pl-64 flex flex-col flex-1">
-        {/* Top navigation */}
-        <div className="sticky top-0 z-40 flex h-16 bg-white shadow">
+        {/* Top navigation - 데스크탑에서만 표시 */}
+        <div className="hidden lg:flex sticky top-0 z-40 h-16 bg-white shadow">
           <button
             type="button"
             className="border-r border-gray-200 px-4 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 lg:hidden"
@@ -245,5 +253,6 @@ export default function Navigation({ children }: NavigationProps) {
         </main>
       </div>
     </div>
+    </>
   )
 }
