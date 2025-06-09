@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 
@@ -9,13 +9,35 @@ export const dynamic = 'force-dynamic'
 type UserRole = 'trainer' | 'member'
 
 export default function OnboardingPage() {
-  const { user } = useUser()
+  const { user, isLoaded, isSignedIn } = useUser()
   const router = useRouter()
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
+  // Check authentication status and redirect if necessary
+  useEffect(() => {
+    if (isLoaded) {
+      // If not signed in, redirect to sign-up
+      if (!isSignedIn) {
+        router.push('/sign-up')
+        return
+      }
+
+      // If user already has a role, redirect to appropriate dashboard
+      if (user?.unsafeMetadata?.role) {
+        const userRole = user.unsafeMetadata.role as UserRole
+        if (userRole === 'trainer') {
+          router.push('/trainer/dashboard')
+        } else {
+          router.push('/member/dashboard')
+        }
+        return
+      }
+    }
+  }, [isLoaded, isSignedIn, user, router])
+
   const handleRoleSelection = async () => {
-    if (!selectedRole || !user) return
+    if (!selectedRole || !user || !isSignedIn) return
 
     setIsLoading(true)
     
@@ -37,6 +59,42 @@ export default function OnboardingPage() {
       console.error('Failed to update user role:', error)
       setIsLoading(false)
     }
+  }
+
+  // Show loading state while Clerk is initializing
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">로딩 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // If not signed in, show loading state (will redirect via useEffect)
+  if (!isSignedIn) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">인증 확인 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // If user already has a role, show loading state (will redirect via useEffect)
+  if (user?.unsafeMetadata?.role) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">대시보드로 이동 중...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
