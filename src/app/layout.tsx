@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import ConditionalClerkProvider from '@/components/shared/conditional-clerk-provider'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -14,7 +15,9 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className="antialiased">
-        {children}
+        <ConditionalClerkProvider>
+          {children}
+        </ConditionalClerkProvider>
       </body>
     </html>
   )
