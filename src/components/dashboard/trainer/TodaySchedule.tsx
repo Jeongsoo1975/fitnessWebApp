@@ -67,42 +67,50 @@ function TodayScheduleContent() {
   }
 
   return (
-    <div className="bg-white shadow rounded-lg">
-      <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
-        <h3 className="text-lg sm:text-xl font-medium text-gray-900">오늘 일정</h3>
+    <div className="mobile-card">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="mobile-subheading">오늘 일정</h3>
+        <span className="mobile-caption text-gray-500">
+          {scheduleItems.length}개
+        </span>
       </div>
-      <div className="p-4 sm:p-6">
-        <div className="space-y-4 sm:space-y-6">
-          {scheduleItems.map((item) => (
-            <div key={item.id} className={`flex items-center p-4 sm:p-6 ${item.bgColor} rounded-lg min-h-[80px] sm:min-h-[96px] touch-manipulation transition-transform active:scale-98`}>
+      
+      <div className="mobile-spacing-compact">
+        {scheduleItems.map((item) => (
+          <div key={item.id} className={`mobile-card-compact ${item.bgColor} border-l-4 border-${item.textColor.split('-')[1]}-500 touch-target-large transition-all active:scale-95`}>
+            <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className={`w-10 h-10 sm:w-12 sm:h-12 bg-${item.textColor.split('-')[1]}-100 rounded-full flex items-center justify-center`}>
-                  <span className={`${item.textColor} font-medium text-sm sm:text-base`}>{item.memberInitial}</span>
+                  <span className={`${item.textColor} font-medium mobile-body`}>{item.memberInitial}</span>
                 </div>
               </div>
-              <div className="ml-4 sm:ml-6 flex-1 min-w-0">
-                <div className="flex items-center justify-between">
+              <div className="ml-4 flex-1 min-w-0">
+                <div className="flex items-start justify-between">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm sm:text-base font-medium text-gray-900 truncate">{item.memberName}</p>
-                    <p className="text-sm sm:text-base text-gray-500 mt-1 truncate">{item.sessionType}</p>
+                    <p className="mobile-body font-medium text-gray-900 truncate">{item.memberName}</p>
+                    <p className="mobile-caption text-gray-500 mt-1 truncate">{item.sessionType}</p>
                   </div>
                   <div className="text-right ml-4 flex-shrink-0">
-                    <p className={`text-sm sm:text-base font-medium ${item.textColor}`}>{item.time}</p>
-                    <span className={`inline-flex items-center px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium ${item.statusBg} ${item.statusColor} mt-1`}>
+                    <p className={`mobile-caption font-medium ${item.textColor}`}>{item.time}</p>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${item.statusBg} ${item.statusColor} mt-1`}>
                       {getStatusLabel(item.status)}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
+      </div>
 
-        <div className="mt-6 sm:mt-8">
-          <button className="w-full text-center text-sm sm:text-base text-blue-600 hover:text-blue-800 font-medium transition-colors min-h-[44px] flex items-center justify-center touch-manipulation">
-            전체 일정 보기 →
-          </button>
-        </div>
+      <div className="mt-6 pt-4 border-t border-gray-200">
+        <a 
+          href="/schedule"
+          className="mobile-button w-full bg-blue-600 text-white text-center flex items-center justify-center gap-2"
+        >
+          전체 일정 보기
+          <span>→</span>
+        </a>
       </div>
     </div>
   )
@@ -110,29 +118,34 @@ function TodayScheduleContent() {
 
 function TodayScheduleSkeleton() {
   return (
-    <div className="bg-white shadow rounded-lg">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <Skeleton className="h-6 w-24" />
+    <div className="mobile-card">
+      <div className="flex items-center justify-between mb-4">
+        <div className="mobile-skeleton h-6 w-24"></div>
+        <div className="mobile-skeleton h-4 w-8"></div>
       </div>
-      <div className="p-6 space-y-4">
+      <div className="mobile-spacing-compact">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="flex items-center p-4 bg-gray-50 rounded-lg">
-            <Skeleton className="w-10 h-10 rounded-full" />
-            <div className="ml-4 flex-1">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Skeleton className="h-4 w-24 mb-1" />
-                  <Skeleton className="h-3 w-32" />
-                </div>
-                <div className="text-right">
-                  <Skeleton className="h-4 w-20 mb-1" />
-                  <Skeleton className="h-5 w-12" />
+          <div key={i} className="mobile-card-compact bg-gray-50">
+            <div className="flex items-center">
+              <div className="mobile-skeleton w-10 h-10 rounded-full"></div>
+              <div className="ml-4 flex-1">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="mobile-skeleton h-4 w-24 mb-2"></div>
+                    <div className="mobile-skeleton h-3 w-32"></div>
+                  </div>
+                  <div className="text-right ml-4">
+                    <div className="mobile-skeleton h-3 w-16 mb-2"></div>
+                    <div className="mobile-skeleton h-5 w-12"></div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         ))}
-        <Skeleton className="h-4 w-32 mx-auto" />
+      </div>
+      <div className="mt-6 pt-4 border-t border-gray-200">
+        <div className="mobile-skeleton h-12 w-full rounded-lg"></div>
       </div>
     </div>
   )
