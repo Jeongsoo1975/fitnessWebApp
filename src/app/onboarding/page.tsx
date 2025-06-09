@@ -15,22 +15,53 @@ export default function OnboardingPage() {
   const searchParams = useSearchParams()
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [currentStoredRole, setCurrentStoredRole] = useState<string | null>(null)
 
   // URL parameter로 강제 onboarding 모드 확인
   const forceOnboarding = searchParams.get('force') === 'true'
+
+  // localStorage 상태를 실시간으로 추적
+  useEffect(() => {
+    const updateStoredRole = () => {
+      if (typeof window !== 'undefined') {
+        const role = localStorage.getItem('userRole')
+        setCurrentStoredRole(role)
+        console.log('[ONBOARDING] Current localStorage userRole:', role)
+      }
+    }
+
+    updateStoredRole()
+    
+    // localStorage 변경 감지
+    window.addEventListener('storage', updateStoredRole)
+    
+    // 주기적으로 확인 (같은 탭에서 변경 감지)
+    const interval = setInterval(updateStoredRole, 1000)
+
+    return () => {
+      window.removeEventListener('storage', updateStoredRole)
+      clearInterval(interval)
+    }
+  }, [])
 
   console.log('[ONBOARDING] Component rendered')
   console.log('[ONBOARDING] isLoaded:', isLoaded)
   console.log('[ONBOARDING] isSignedIn:', isSignedIn)
   console.log('[ONBOARDING] user role:', user?.publicMetadata?.role)
   console.log('[ONBOARDING] forceOnboarding:', forceOnboarding)
+  console.log('[ONBOARDING] currentStoredRole:', currentStoredRole)
 
   // 개발용 localStorage 초기화 함수
   const resetLocalStorage = () => {
+    console.log('[ONBOARDING] Before reset - localStorage userRole:', localStorage.getItem('userRole'))
     localStorage.removeItem('userRole')
-    console.log('[ONBOARDING] localStorage cleared')
+    localStorage.clear() // 모든 localStorage 데이터 삭제
+    console.log('[ONBOARDING] After reset - localStorage userRole:', localStorage.getItem('userRole'))
+    setCurrentStoredRole(null)
     // force=true parameter로 onboarding 페이지에 머무르도록 함
-    window.location.href = '/onboarding?force=true'
+    setTimeout(() => {
+      window.location.href = '/onboarding?force=true'
+    }, 100)
   }
 
   // Check authentication status and redirect if necessary
@@ -76,6 +107,8 @@ export default function OnboardingPage() {
     if (!selectedRole || !user || !isSignedIn) return
 
     console.log('[ONBOARDING] Role selection started:', selectedRole)
+    console.log('[ONBOARDING] Before setting - localStorage userRole:', localStorage.getItem('userRole'))
+    
     setIsLoading(true)
     
     try {
@@ -84,6 +117,10 @@ export default function OnboardingPage() {
       // localStorage에 역할 저장 (즉시 사용 가능)
       localStorage.setItem('userRole', selectedRole)
       console.log('[ONBOARDING] Role saved to localStorage:', selectedRole)
+      console.log('[ONBOARDING] After setting - localStorage userRole:', localStorage.getItem('userRole'))
+      
+      // 상태 업데이트
+      setCurrentStoredRole(selectedRole)
       
       // Update user metadata using API route (백그라운드에서 실행)
       const updateDuration = await performanceLogger.measureAsync('clerk-metadata-update', async () => {
@@ -114,13 +151,19 @@ export default function OnboardingPage() {
       
       console.log('[ONBOARDING] Role update process completed')
       
-      // 즉시 대시보드로 이동 (localStorage 기반)
-      const targetUrl = selectedRole === 'trainer' 
-        ? '/trainer/dashboard' 
-        : '/member/dashboard'
-      
-      console.log('[ONBOARDING] Navigating to:', targetUrl)
-      router.push(targetUrl)
+      // 짧은 지연 후 이동 (localStorage 확실히 저장되도록)
+      setTimeout(() => {
+        const finalStoredRole = localStorage.getItem('userRole')
+        console.log('[ONBOARDING] Final check - localStorage userRole:', finalStoredRole)
+        
+        // 즉시 대시보드로 이동 (localStorage 기반)
+        const targetUrl = selectedRole === 'trainer' 
+          ? '/trainer/dashboard' 
+          : '/member/dashboard'
+        
+        console.log('[ONBOARDING] Navigating to:', targetUrl)
+        router.push(targetUrl)
+      }, 500)
       
     } catch (error) {
       console.error('[ONBOARDING] Failed to update user role:', error)
@@ -186,18 +229,18 @@ export default function OnboardingPage() {
       <div className="max-w-md w-full space-y-8 p-8">
         {/* 개발용 리셋 버튼 */}
         {process.env.NODE_ENV === 'development' && (
-          <div className="text-center">
+          <div className="text-center space-y-2">
             <button
               onClick={resetLocalStorage}
               className="text-xs text-red-500 hover:text-red-700 underline"
             >
               [개발용] localStorage 초기화
             </button>
-            {storedRole && (
-              <p className="text-xs text-gray-500 mt-1">
-                현재 저장된 역할: {storedRole}
-              </p>
-            )}
+            <div className="text-xs text-gray-500">
+              <p>현재 저장된 역할: {currentStoredRole || 'null'}</p>
+              <p>선택된 역할: {selectedRole || 'null'}</p>
+              <p>Force 모드: {forceOnboarding ? 'true' : 'false'}</p>
+            </div>
           </div>
         )}
 
@@ -208,11 +251,6 @@ export default function OnboardingPage() {
           <p className="mt-2 text-gray-600">
             FitnessWebApp을 시작하기 위해 역할을 선택하세요
           </p>
-          {forceOnboarding && (
-            <p className="mt-2 text-xs text-orange-600">
-              강제 onboarding 모드
-            </p>
-          )}
         </div>
 
         <div className="space-y-4">
