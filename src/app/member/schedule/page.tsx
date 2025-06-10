@@ -78,7 +78,7 @@ export default function MemberSchedulePage() {
 
       {/* 메인 컨텐츠 */}
       <div className="py-6">
-        <ScheduleCalendar />
+        <ScheduleCalendar onAddSchedule={() => setIsAddModalOpen(true)} />
       </div>
 
       {/* 일정 추가 모달 */}

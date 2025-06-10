@@ -26,6 +26,10 @@ interface CalendarDay {
   schedules: ScheduleItem[]
 }
 
+interface ScheduleCalendarProps {
+  onAddSchedule?: () => void
+}
+
 const SCHEDULE_TYPES = {
   pt: { label: 'PT 세션', color: 'bg-blue-500', textColor: 'text-blue-700', bgColor: 'bg-blue-50' },
   group: { label: '그룹 수업', color: 'bg-green-500', textColor: 'text-green-700', bgColor: 'bg-green-50' },
@@ -40,7 +44,7 @@ const STATUS_TYPES = {
   cancelled: { label: '취소', color: 'bg-red-100 text-red-800' }
 }
 
-export default function ScheduleCalendar() {
+export default function ScheduleCalendar({ onAddSchedule }: ScheduleCalendarProps = {}) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar')
@@ -294,7 +298,10 @@ export default function ScheduleCalendar() {
             <h4 className="mobile-subheading">
               {selectedDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} 일정
             </h4>
-            <button className="mobile-button-small bg-blue-600 text-white flex items-center gap-1">
+            <button 
+              onClick={onAddSchedule}
+              className="mobile-button-small bg-blue-600 text-white flex items-center gap-1"
+            >
               <PlusIcon className="w-4 h-4" />
               추가
             </button>
@@ -305,7 +312,10 @@ export default function ScheduleCalendar() {
               <div className="text-center py-8">
                 <ClockIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <p className="mobile-body text-gray-500">예정된 일정이 없습니다</p>
-                <button className="mobile-button bg-blue-600 text-white mt-4">
+                <button 
+                  onClick={onAddSchedule}
+                  className="mobile-button bg-blue-600 text-white mt-4"
+                >
                   새 일정 추가
                 </button>
               </div>
@@ -370,15 +380,12 @@ export default function ScheduleCalendar() {
 
         {/* 빠른 액션 버튼 */}
         <div className="mt-6 pt-6 border-t border-gray-200">
-          <div className="mobile-grid-auto">
-            <button className="mobile-button bg-blue-600 text-white">
+          <div className="flex justify-center">
+            <button 
+              onClick={onAddSchedule}
+              className="mobile-button bg-blue-600 text-white"
+            >
               새 PT 예약
-            </button>
-            <button className="mobile-button bg-green-600 text-white">
-              그룹 수업 등록
-            </button>
-            <button className="mobile-button bg-gray-200 text-gray-800">
-              휴식 시간 설정
             </button>
           </div>
         </div>
