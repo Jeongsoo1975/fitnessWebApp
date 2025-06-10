@@ -31,8 +31,12 @@ export function useNotifications(): UseNotificationsReturn {
   const [error, setError] = useState<string | null>(null)
 
   const fetchNotifications = async () => {
-    if (!isLoaded || !user) return
+    if (!isLoaded || !user) {
+      console.log('[useNotifications] User not loaded or not available')
+      return
+    }
 
+    console.log('[useNotifications] Fetching notifications for user:', user.id)
     setIsLoading(true)
     setError(null)
 
@@ -44,19 +48,25 @@ export function useNotifications(): UseNotificationsReturn {
         },
       })
 
+      console.log('[useNotifications] API response status:', response.status)
+
       if (!response.ok) {
-        throw new Error('Failed to fetch notifications')
+        throw new Error(`Failed to fetch notifications: ${response.status}`)
       }
 
       const data = await response.json()
+      console.log('[useNotifications] API response data:', data)
       
       if (data.success) {
         setRequests(data.requests || [])
+        console.log('[useNotifications] Requests set:', data.requests?.length || 0)
+        console.log('[useNotifications] Pending requests:', data.requests?.filter((r: any) => r.status === 'pending').length || 0)
       } else {
         setError('Failed to load notifications')
+        console.error('[useNotifications] API returned success: false')
       }
     } catch (err) {
-      console.error('Error fetching notifications:', err)
+      console.error('[useNotifications] Error fetching notifications:', err)
       setError('네트워크 오류가 발생했습니다.')
     } finally {
       setIsLoading(false)
@@ -68,6 +78,15 @@ export function useNotifications(): UseNotificationsReturn {
   }, [isLoaded, user])
 
   const pendingCount = requests.filter(req => req.status === 'pending').length
+  
+  // 디버깅 로그
+  console.log('[useNotifications] Current state:', {
+    requestsLength: requests.length,
+    requests: requests.map(r => ({ id: r.id, status: r.status })),
+    pendingCount,
+    isLoading,
+    error
+  })
 
   return {
     requests,

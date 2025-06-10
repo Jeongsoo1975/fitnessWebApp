@@ -264,7 +264,10 @@ export default function Navigation({ children }: NavigationProps) {
             <div className="ml-4 flex items-center md:ml-6 space-x-3">
               {/* 회원 전용 알림 아이콘 */}
               {role === 'member' && (
-                <NotificationBell size="md" />
+                <div>
+                  <span className="text-xs text-gray-500 mr-2">알림:</span>
+                  <NotificationBell size="md" />
+                </div>
               )}
               
               {/* 개발용 역할 전환 버튼 */}

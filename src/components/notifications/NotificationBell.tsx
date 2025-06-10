@@ -19,6 +19,9 @@ export default function NotificationBell({
   const router = useRouter()
   const { pendingCount, isLoading } = useNotifications()
 
+  // 디버깅 로그
+  console.log('[NotificationBell] Rendering with:', { pendingCount, isLoading })
+
   const sizeClasses = {
     sm: 'w-5 h-5',
     md: 'w-6 h-6', 
@@ -32,10 +35,12 @@ export default function NotificationBell({
   }
 
   const handleClick = () => {
+    console.log('[NotificationBell] Clicked, navigating to notifications')
     router.push('/member/notifications')
   }
 
   const hasPendingNotifications = pendingCount > 0
+  console.log('[NotificationBell] Has pending notifications:', hasPendingNotifications)
 
   return (
     <button
