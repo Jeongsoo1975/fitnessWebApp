@@ -180,6 +180,19 @@ export const mockDataStore = {
     return mockMembers.find(member => member.id === id)
   },
 
+  // 새로운 회원 추가 함수
+  addMember: (member: { email: string; firstName?: string; lastName?: string }) => {
+    const newMember: MockMemberProfile = {
+      id: Date.now().toString(),
+      firstName: member.firstName || '신규',
+      lastName: member.lastName || '회원',
+      email: member.email,
+      isRegistered: false
+    }
+    mockMembers.push(newMember)
+    return newMember
+  },
+
   // 회원 매칭 시스템
   searchMembers: (query: string) => {
     const lowerQuery = query.toLowerCase()
