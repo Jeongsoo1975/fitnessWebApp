@@ -30,11 +30,13 @@ body {
 @layer components {
   /* Touch Target Standards - 최소 44px (Apple) / 48px (Google) */
   .touch-target {
-    @apply min-h-[44px] min-w-[44px] touch-manipulation tap-highlight-none;
+    @apply min-h-[44px] min-w-[44px] touch-manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
   
   .touch-target-large {
-    @apply min-h-[48px] min-w-[48px] touch-manipulation tap-highlight-none;
+    @apply min-h-[48px] min-w-[48px] touch-manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Mobile Card Components */
