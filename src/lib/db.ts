@@ -222,3 +222,46 @@ export interface ExerciseRecord {
   notes?: string
   performed_at: string
 }
+
+// 새로 추가된 테이블 타입들
+export interface ScheduleChangeRequest {
+  id: string
+  workout_id: string
+  member_id: string
+  trainer_id: string
+  requested_date?: string
+  requested_start_time?: string
+  requested_end_time?: string
+  current_date: string
+  current_start_time: string
+  current_end_time: string
+  reason?: string
+  status: 'pending' | 'approved' | 'rejected'
+  trainer_response?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Message {
+  id: string
+  sender_id: string
+  receiver_id: string
+  workout_id?: string
+  change_request_id?: string
+  content: string
+  message_type: 'general' | 'schedule_change' | 'system'
+  read_at?: string
+  created_at: string
+}
+
+export interface Notification {
+  id: string
+  user_id: string
+  type: 'new_workout' | 'schedule_change_request' | 'schedule_change_response' | 'new_message'
+  title: string
+  content: string
+  related_id?: string
+  related_type?: 'workout' | 'change_request' | 'message'
+  read_at?: string
+  created_at: string
+}

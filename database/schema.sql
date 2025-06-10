@@ -150,3 +150,71 @@ CREATE INDEX idx_progress_member ON progress_tracking(member_id);
 CREATE INDEX idx_progress_date ON progress_tracking(date);
 CREATE INDEX idx_exercise_records_member ON exercise_records(member_id);
 CREATE INDEX idx_exercise_records_workout ON exercise_records(workout_id);
+
+-- 일정 변경 요청 테이블
+CREATE TABLE schedule_change_requests (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    workout_id TEXT NOT NULL,
+    member_id TEXT NOT NULL,
+    trainer_id TEXT NOT NULL,
+    requested_date DATE,
+    requested_start_time TIME,
+    requested_end_time TIME,
+    current_date DATE NOT NULL,
+    current_start_time TIME NOT NULL,
+    current_end_time TIME NOT NULL,
+    reason TEXT,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    trainer_response TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (workout_id) REFERENCES workouts(id) ON DELETE CASCADE,
+    FOREIGN KEY (member_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (trainer_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 메시지 테이블 (트레이너-회원 간 소통)
+CREATE TABLE messages (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    sender_id TEXT NOT NULL,
+    receiver_id TEXT NOT NULL,
+    workout_id TEXT,
+    change_request_id TEXT,
+    content TEXT NOT NULL,
+    message_type TEXT NOT NULL DEFAULT 'general' CHECK (message_type IN ('general', 'schedule_change', 'system')),
+    read_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (workout_id) REFERENCES workouts(id) ON DELETE SET NULL,
+    FOREIGN KEY (change_request_id) REFERENCES schedule_change_requests(id) ON DELETE SET NULL
+);
+
+-- 알림 테이블
+CREATE TABLE notifications (
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+    user_id TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('new_workout', 'schedule_change_request', 'schedule_change_response', 'new_message')),
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    related_id TEXT, -- workout_id, change_request_id, message_id 등
+    related_type TEXT CHECK (related_type IN ('workout', 'change_request', 'message')),
+    read_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 새 테이블들의 인덱스 생성
+CREATE INDEX idx_schedule_change_requests_workout ON schedule_change_requests(workout_id);
+CREATE INDEX idx_schedule_change_requests_member ON schedule_change_requests(member_id);
+CREATE INDEX idx_schedule_change_requests_trainer ON schedule_change_requests(trainer_id);
+CREATE INDEX idx_schedule_change_requests_status ON schedule_change_requests(status);
+CREATE INDEX idx_messages_sender ON messages(sender_id);
+CREATE INDEX idx_messages_receiver ON messages(receiver_id);
+CREATE INDEX idx_messages_workout ON messages(workout_id);
+CREATE INDEX idx_messages_change_request ON messages(change_request_id);
+CREATE INDEX idx_messages_created_at ON messages(created_at);
+CREATE INDEX idx_notifications_user ON notifications(user_id);
+CREATE INDEX idx_notifications_type ON notifications(type);
+CREATE INDEX idx_notifications_read_at ON notifications(read_at);
+CREATE INDEX idx_notifications_created_at ON notifications(created_at);

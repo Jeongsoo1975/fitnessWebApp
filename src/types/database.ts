@@ -61,3 +61,47 @@ export interface TrainerMemberRelation {
   createdAt: Date
   updatedAt: Date
 }
+
+// 새로 추가된 타입들
+
+export interface ScheduleChangeRequest {
+  id: string
+  workoutId: string
+  memberId: string
+  trainerId: string
+  requestedDate?: Date
+  requestedStartTime?: string
+  requestedEndTime?: string
+  currentDate: Date
+  currentStartTime: string
+  currentEndTime: string
+  reason?: string
+  status: 'pending' | 'approved' | 'rejected'
+  trainerResponse?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface Message {
+  id: string
+  senderId: string
+  receiverId: string
+  workoutId?: string
+  changeRequestId?: string
+  content: string
+  messageType: 'general' | 'schedule_change' | 'system'
+  readAt?: Date
+  createdAt: Date
+}
+
+export interface Notification {
+  id: string
+  userId: string
+  type: 'new_workout' | 'schedule_change_request' | 'schedule_change_response' | 'new_message'
+  title: string
+  content: string
+  relatedId?: string
+  relatedType?: 'workout' | 'change_request' | 'message'
+  readAt?: Date
+  createdAt: Date
+}
