@@ -216,15 +216,49 @@ export const mockDataStore = {
   },
 
   getMemberRequests: (memberId: string) => {
-    return mockTrainerMemberRequests.filter(request => request.memberId === memberId)
+    console.log('[getMemberRequests] Searching for memberId:', memberId)
+    const directMatches = mockTrainerMemberRequests.filter(request => request.memberId === memberId)
+    console.log('[getMemberRequests] Direct matches found:', directMatches.length)
+    return directMatches
   },
 
-  // 이메일로도 요청 검색 가능
+  // 이메일로도 요청 검색 가능 - 향상된 매칭 로직
   getMemberRequestsByEmail: (email: string) => {
-    return mockTrainerMemberRequests.filter(request => 
-      request.memberId === email || 
-      request.memberId.includes(email)
+    console.log('[getMemberRequestsByEmail] Searching for email:', email)
+    
+    // 정확한 이메일 매칭
+    const exactMatches = mockTrainerMemberRequests.filter(request => 
+      request.memberId === email
     )
+    console.log('[getMemberRequestsByEmail] Exact email matches:', exactMatches.length)
+    
+    if (exactMatches.length > 0) {
+      return exactMatches
+    }
+    
+    // 이메일 사용자명 부분으로 매칭 (예: teamqc0508@gmail.com과 teamqc0508@google.com)
+    const emailUsername = email.split('@')[0]
+    const usernameMatches = mockTrainerMemberRequests.filter(request => {
+      if (request.memberId.includes('@')) {
+        const requestUsername = request.memberId.split('@')[0]
+        return requestUsername === emailUsername
+      }
+      return false
+    })
+    console.log('[getMemberRequestsByEmail] Username matches:', usernameMatches.length, 'for username:', emailUsername)
+    
+    if (usernameMatches.length > 0) {
+      console.log('[getMemberRequestsByEmail] Found matches by username:', usernameMatches)
+      return usernameMatches
+    }
+    
+    // 부분 문자열 매칭 (폴백)
+    const partialMatches = mockTrainerMemberRequests.filter(request => 
+      request.memberId.includes(email) || email.includes(request.memberId)
+    )
+    console.log('[getMemberRequestsByEmail] Partial matches:', partialMatches.length)
+    
+    return partialMatches
   },
 
   // 디버깅용: 모든 요청 조회
@@ -257,17 +291,29 @@ export const mockDataStore = {
   },
 
   getTrainerMembers: (trainerId: string) => {
+    console.log('[getTrainerMembers] Searching for trainerId:', trainerId)
+    
     const approvedRequests = mockTrainerMemberRequests.filter(
       request => request.trainerId === trainerId && request.status === 'approved'
     )
     
-    return approvedRequests.map(request => {
+    console.log('[getTrainerMembers] Found approved requests:', approvedRequests.length)
+    console.log('[getTrainerMembers] Approved requests details:', approvedRequests)
+    
+    if (approvedRequests.length === 0) {
+      console.log('[getTrainerMembers] No approved requests found for trainerId:', trainerId)
+      console.log('[getTrainerMembers] Available trainer IDs in system:', 
+        [...new Set(mockTrainerMemberRequests.map(r => r.trainerId))]
+      )
+    }
+    
+    const members = approvedRequests.map(request => {
       // memberId가 이메일인 경우 해당 이메일을 기반으로 회원 정보 생성
       if (request.memberId.includes('@')) {
         const emailParts = request.memberId.split('@')
         const username = emailParts[0]
         
-        return {
+        const memberInfo = {
           id: request.memberId,
           firstName: username.charAt(0).toUpperCase() + username.slice(1),
           lastName: '회원',
@@ -275,11 +321,24 @@ export const mockDataStore = {
           requestId: request.id,
           isRegistered: true
         }
+        
+        console.log('[getTrainerMembers] Generated member info from email:', memberInfo)
+        return memberInfo
       } else {
         // 기존 mock 회원 데이터에서 찾기
         const member = mockMembers.find(m => m.id === request.memberId)
-        return member ? { ...member, requestId: request.id } : null
+        if (member) {
+          const memberInfo = { ...member, requestId: request.id }
+          console.log('[getTrainerMembers] Found member in mock data:', memberInfo)
+          return memberInfo
+        } else {
+          console.log('[getTrainerMembers] Member not found in mock data for ID:', request.memberId)
+          return null
+        }
       }
     }).filter(Boolean)
+    
+    console.log('[getTrainerMembers] Final members list:', members)
+    return members
   }
 }
