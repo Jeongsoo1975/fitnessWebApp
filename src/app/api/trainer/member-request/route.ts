@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     // 요청 본문에서 데이터 추출
     const body = await request.json()
     console.log('Request body:', body)
-    const { memberId, message } = body
+    const { memberId, memberEmail, memberFirstName, memberLastName, message } = body
 
     // 입력값 검증
     if (!memberId) {
@@ -44,15 +44,29 @@ export async function POST(request: NextRequest) {
     const allMembers = mockDataStore.getMembers()
     console.log('All members in store:', allMembers.map(m => ({ id: m.id, email: m.email })))
     
-    const member = mockDataStore.getMemberById(memberId)
+    let member = mockDataStore.getMemberById(memberId)
     console.log('Found member:', member)
     
+    // 만약 회원이 없으면 전달받은 정보로 재생성
     if (!member) {
-      console.log('Member not found with ID:', memberId)
-      return NextResponse.json(
-        { error: 'Member not found' },
-        { status: 404 }
-      )
+      console.log('Member not found, recreating with provided info')
+      
+      if (memberEmail && memberFirstName && memberLastName) {
+        member = mockDataStore.addMember({
+          email: memberEmail,
+          firstName: memberFirstName,
+          lastName: memberLastName
+        })
+        // 생성된 회원의 ID를 요청된 ID로 강제 변경
+        member.id = memberId
+        console.log('Recreated member:', member)
+      } else {
+        console.log('Member not found and insufficient info to recreate, ID:', memberId)
+        return NextResponse.json(
+          { error: 'Member not found' },
+          { status: 404 }
+        )
+      }
     }
 
     // 이미 등록된 회원인지 확인

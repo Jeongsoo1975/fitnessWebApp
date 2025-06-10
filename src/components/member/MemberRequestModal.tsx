@@ -49,6 +49,9 @@ export default function MemberRequestModal({
         },
         body: JSON.stringify({
           memberId: member.id,
+          memberEmail: member.email, // 이메일 정보 추가
+          memberFirstName: member.firstName, // 이름 정보 추가
+          memberLastName: member.lastName, // 성 정보 추가
           message: message.trim() || '함께 운동하게 되어 기쁩니다!'
         })
       })
