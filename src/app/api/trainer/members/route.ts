@@ -20,9 +20,36 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // 개발 환경에서 DB가 없는 경우 더미 데이터 반환
+    if (process.env.NODE_ENV === 'development') {
+      const env = process.env as unknown as DatabaseEnv
+      if (!env.DB) {
+        console.log('Development mode: Returning mock member data')
+        return NextResponse.json({
+          success: true,
+          members: [
+            {
+              id: '1',
+              firstName: '김',
+              lastName: '회원',
+              email: 'member1@example.com'
+            },
+            {
+              id: '2', 
+              firstName: '이',
+              lastName: '회원',
+              email: 'member2@example.com'
+            }
+          ],
+          count: 2
+        })
+      }
+    }
+
     // Cloudflare Workers 환경에서 DB 접근
     const env = process.env as unknown as DatabaseEnv
     if (!env.DB) {
+      console.error('Database not available in production environment')
       return NextResponse.json(
         { error: 'Database not available' },
         { status: 500 }
@@ -83,6 +110,16 @@ export async function GET(request: NextRequest) {
         { error: 'Unauthorized access' },
         { status: 403 }
       )
+    }
+
+    // 개발 환경에서 DB 오류 시 더미 데이터 반환
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Development mode: Database error, returning fallback data')
+      return NextResponse.json({
+        success: true,
+        members: [],
+        count: 0
+      })
     }
 
     return NextResponse.json(
