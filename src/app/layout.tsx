@@ -1,22 +1,20 @@
 import type { Metadata } from 'next'
 import ConditionalClerkProvider from '@/components/shared/conditional-clerk-provider'
-import PerformanceMonitor from '@/components/shared/PerformanceMonitor'
+import dynamic from 'next/dynamic'
 import './globals.css'
+
+// 개발 환경에서만 PerformanceMonitor 로드
+const PerformanceMonitor = dynamic(
+  () => import('@/components/shared/PerformanceMonitor'),
+  { 
+    ssr: false,
+    loading: () => null
+  }
+)
 
 export const metadata: Metadata = {
   title: 'FitnessWebApp - Personal Training Management',
   description: 'Web-based Personal Training management app for trainers and members',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 5,
-    userScalable: true,
-    viewportFit: 'cover'
-  },
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#000000' }
-  ],
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -76,8 +74,8 @@ export default function RootLayout({
           </ConditionalClerkProvider>
         </div>
 
-        {/* Performance Monitor (development only by default) */}
-        <PerformanceMonitor />
+        {/* Performance Monitor (development only) */}
+        {process.env.NODE_ENV === 'development' && <PerformanceMonitor />}
 
         {/* Screen reader announcements container */}
         <div 
