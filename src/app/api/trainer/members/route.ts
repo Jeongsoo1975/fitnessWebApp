@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireRole, getCurrentUser } from '@/lib/auth'
 import { createDatabaseManager } from '@/lib/db'
 import type { DatabaseEnv } from '@/lib/db'
+import { mockDataStore } from '@/lib/mockData'
 
 export const runtime = 'edge'
 
@@ -20,28 +21,16 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 개발 환경에서 DB가 없는 경우 더미 데이터 반환
+    // 개발 환경에서 DB가 없는 경우 mock 데이터 반환
     if (process.env.NODE_ENV === 'development') {
       const env = process.env as unknown as DatabaseEnv
       if (!env.DB) {
         console.log('Development mode: Returning mock member data')
+        const members = mockDataStore.getMembers()
         return NextResponse.json({
           success: true,
-          members: [
-            {
-              id: '1',
-              firstName: '김',
-              lastName: '회원',
-              email: 'member1@example.com'
-            },
-            {
-              id: '2', 
-              firstName: '이',
-              lastName: '회원',
-              email: 'member2@example.com'
-            }
-          ],
-          count: 2
+          members: members,
+          count: members.length
         })
       }
     }

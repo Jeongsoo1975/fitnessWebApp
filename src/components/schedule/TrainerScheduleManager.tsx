@@ -16,13 +16,12 @@ interface Schedule {
   id: string
   date: string
   title: string
-  description?: string
-  bodyParts: string[]
-  exercises: any[]
+  notes?: string // description -> notes로 변경
   status: 'scheduled' | 'completed' | 'cancelled'
   memberName?: string
   memberId?: string
   createdAt: string
+  updatedAt?: string
 }
 
 export default function TrainerScheduleManager() {
@@ -98,11 +97,19 @@ export default function TrainerScheduleManager() {
         throw new Error('Failed to create schedule')
       }
 
-      // 스케줄 목록 새로고침
-      await loadSchedules()
+      const result = await response.json()
+      console.log('Schedule created:', result)
+
+      // 모달 닫기
+      setIsModalOpen(false)
       
-      // 성공 메시지 (토스트 대신 간단한 alert)
+      // 성공 메시지
       alert('스케줄이 성공적으로 추가되었습니다!')
+      
+      // 약간의 지연 후 스케줄 목록 새로고침 (개발 환경에서 mock 데이터 업데이트 반영)
+      setTimeout(async () => {
+        await loadSchedules()
+      }, 100)
 
     } catch (error) {
       console.error('Error creating schedule:', error)
@@ -312,8 +319,8 @@ function TrainerScheduleList({
                   )}
                 </div>
                 
-                {schedule.description && (
-                  <p className="mt-2 text-sm text-gray-600 line-clamp-2">{schedule.description}</p>
+                {schedule.notes && (
+                  <p className="mt-2 text-sm text-gray-600 line-clamp-2">{schedule.notes}</p>
                 )}
               </div>
               

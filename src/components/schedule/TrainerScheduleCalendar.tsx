@@ -7,13 +7,12 @@ interface Schedule {
   id: string
   date: string
   title: string
-  description?: string
-  bodyParts: string[]
-  exercises: any[]
+  notes?: string // description -> notes로 변경  
   status: 'scheduled' | 'completed' | 'cancelled'
   memberName?: string
   memberId?: string
   createdAt: string
+  updatedAt?: string
 }
 
 interface TrainerScheduleCalendarProps {

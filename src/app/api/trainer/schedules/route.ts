@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireRole, getCurrentUser } from '@/lib/auth'
 import { createDatabaseManager } from '@/lib/db'
 import type { DatabaseEnv } from '@/lib/db'
+import { mockDataStore } from '@/lib/mockData'
 
 export const runtime = 'edge'
 
@@ -25,27 +26,16 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url)
     const date = url.searchParams.get('date')
 
-    // 개발 환경에서 DB가 없는 경우 더미 데이터 반환
+    // 개발 환경에서 DB가 없는 경우 mock 데이터 반환
     if (process.env.NODE_ENV === 'development') {
       const env = process.env as unknown as DatabaseEnv
       if (!env.DB) {
         console.log('Development mode: Returning mock schedule data')
+        const schedules = mockDataStore.getSchedules(date || undefined)
         return NextResponse.json({
           success: true,
-          schedules: [
-            {
-              id: '1',
-              title: 'PT 세션 - 김회원',
-              notes: '상체 운동 중심',
-              date: date || '2025-06-10',
-              status: 'scheduled',
-              memberId: '1',
-              memberName: '김 회원',
-              createdAt: '2025-06-10T09:00:00Z',
-              updatedAt: '2025-06-10T09:00:00Z'
-            }
-          ],
-          count: 1
+          schedules: schedules,
+          count: schedules.length
         })
       }
     }
@@ -188,14 +178,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 개발 환경에서 DB가 없는 경우 mock 응답 반환
+    // 개발 환경에서 DB가 없는 경우 mock 저장소에 추가
     if (process.env.NODE_ENV === 'development') {
       const env = process.env as unknown as DatabaseEnv
       if (!env.DB) {
-        console.log('Development mode: Mock schedule creation')
+        console.log('Development mode: Adding schedule to mock store')
+        
+        // 회원 정보 조회
+        let memberName = null
+        if (memberId) {
+          const member = mockDataStore.getMemberById(memberId)
+          if (member) {
+            memberName = `${member.firstName} ${member.lastName}`
+          }
+        }
+        
+        const newSchedule = mockDataStore.addSchedule({
+          title,
+          notes: notes || undefined,
+          date,
+          status: status as 'scheduled' | 'completed' | 'cancelled',
+          memberId: memberId || undefined,
+          memberName: memberName || undefined
+        })
+        
         return NextResponse.json({
           success: true,
-          scheduleId: Date.now().toString(),
+          scheduleId: newSchedule.id,
           message: 'Schedule created successfully (development mode)'
         })
       }
