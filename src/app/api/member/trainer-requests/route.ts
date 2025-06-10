@@ -29,6 +29,10 @@ export async function GET(request: NextRequest) {
     // 먼저 모든 요청을 확인 (디버깅용)
     const allRequests = mockDataStore.getAllRequests()
     console.log('[member-requests] All requests in system:', allRequests.length)
+    console.log('[member-requests] All requests details:')
+    allRequests.forEach((req, index) => {
+      console.log(`  ${index + 1}. ID: ${req.id}, TrainerID: ${req.trainerId}, MemberID: ${req.memberId}, Status: ${req.status}, Created: ${req.createdAt}`)
+    })
     
     // 1. 먼저 Clerk ID로 검색 (최우선)
     let memberRequests = mockDataStore.getMemberRequests(currentUser.id)
