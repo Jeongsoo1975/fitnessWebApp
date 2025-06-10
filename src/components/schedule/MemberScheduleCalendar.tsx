@@ -44,7 +44,7 @@ const STATUS_TYPES = {
   cancelled: { label: '취소', color: 'bg-red-100 text-red-800' }
 }
 
-export default function MemberScheduleCalendar({ onAddSchedule }: MemberScheduleCalendarProps = {}) {
+export default function MemberScheduleCalendar({ onAddSchedule }: MemberScheduleCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar')
@@ -323,17 +323,23 @@ export default function MemberScheduleCalendar({ onAddSchedule }: MemberSchedule
               </div>
             ) : (
               getSelectedDateSchedules().map((schedule) => (
-                <div key={schedule.id} className={`mobile-card-compact border-l-4 border-${schedule.color}-500`}>
+                <div key={schedule.id} className={`mobile-card-compact border-l-4 ${schedule.color === 'blue' ? 'border-blue-500' : schedule.color === 'purple' ? 'border-purple-500' : schedule.color === 'orange' ? 'border-orange-500' : 'border-gray-500'}`}>
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          SCHEDULE_TYPES[schedule.type].bgColor
-                        } ${SCHEDULE_TYPES[schedule.type].textColor}`}>
+                          schedule.type === 'pt' ? 'bg-blue-50 text-blue-700' :
+                          schedule.type === 'group' ? 'bg-green-50 text-green-700' :
+                          schedule.type === 'personal' ? 'bg-purple-50 text-purple-700' :
+                          'bg-orange-50 text-orange-700'
+                        }`}>
                           {SCHEDULE_TYPES[schedule.type].label}
                         </span>
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          STATUS_TYPES[schedule.status].color
+                          schedule.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
+                          schedule.status === 'in-progress' ? 'bg-yellow-100 text-yellow-800' :
+                          schedule.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          'bg-red-100 text-red-800'
                         }`}>
                           {STATUS_TYPES[schedule.status].label}
                         </span>
