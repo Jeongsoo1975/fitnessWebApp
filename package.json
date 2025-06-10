@@ -11,6 +11,7 @@
   "dependencies": {
     "@clerk/nextjs": "^6.21.0",
     "@cloudflare/workers-types": "^4.20241218.0",
+    "@heroicons/react": "^2.2.0",
     "autoprefixer": "^10.4.21",
     "next": "15.2.3",
     "react": "^19.0.0",
