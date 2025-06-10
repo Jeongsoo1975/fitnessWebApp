@@ -260,9 +260,26 @@ export const mockDataStore = {
     const approvedRequests = mockTrainerMemberRequests.filter(
       request => request.trainerId === trainerId && request.status === 'approved'
     )
+    
     return approvedRequests.map(request => {
-      const member = mockMembers.find(m => m.id === request.memberId)
-      return member ? { ...member, requestId: request.id } : null
+      // memberId가 이메일인 경우 해당 이메일을 기반으로 회원 정보 생성
+      if (request.memberId.includes('@')) {
+        const emailParts = request.memberId.split('@')
+        const username = emailParts[0]
+        
+        return {
+          id: request.memberId,
+          firstName: username.charAt(0).toUpperCase() + username.slice(1),
+          lastName: '회원',
+          email: request.memberId,
+          requestId: request.id,
+          isRegistered: true
+        }
+      } else {
+        // 기존 mock 회원 데이터에서 찾기
+        const member = mockMembers.find(m => m.id === request.memberId)
+        return member ? { ...member, requestId: request.id } : null
+      }
     }).filter(Boolean)
   }
 }

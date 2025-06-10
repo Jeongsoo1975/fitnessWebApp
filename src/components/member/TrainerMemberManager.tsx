@@ -25,26 +25,37 @@ export default function TrainerMemberManager() {
       setIsLoading(true)
       setError(null)
       
-      // TODO: API 엔드포인트가 구현되면 실제 데이터 로드
-      // 현재는 mockDataStore를 직접 호출할 수 없으므로 더미 데이터 사용
-      const dummyMembers: TrainerMember[] = [
-        {
-          id: '1',
-          firstName: '김',
-          lastName: '회원',
-          email: 'member1@example.com',
-          requestId: '1'
-        },
-        {
-          id: '5',
-          firstName: '정',
-          lastName: '회원',
-          email: 'member5@example.com',
-          requestId: '2'
+      // 실제 승인된 회원 목록을 가져오기 위한 API 호출
+      const response = await fetch('/api/trainer/members', {
+        headers: {
+          'Authorization': `Bearer ${await getToken()}`
         }
-      ]
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setMyMembers(data.members || [])
+      } else {
+        // API 실패 시 더미 데이터 사용
+        const dummyMembers: TrainerMember[] = [
+          {
+            id: '1',
+            firstName: '김',
+            lastName: '회원',
+            email: 'member1@example.com',
+            requestId: '1'
+          },
+          {
+            id: '5',
+            firstName: '정',
+            lastName: '회원',
+            email: 'member5@example.com',
+            requestId: '2'
+          }
+        ]
+        setMyMembers(dummyMembers)
+      }
       
-      setMyMembers(dummyMembers)
     } catch (error) {
       console.error('Error loading my members:', error)
       setError('회원 목록을 불러오는데 실패했습니다.')
@@ -55,12 +66,15 @@ export default function TrainerMemberManager() {
 
   // 등록 요청 성공 처리
   const handleRequestSent = (memberId: string) => {
-    // 알림 표시
+    // 성공 알림 및 내 회원 목록 새로고침
     setError(null)
-    // 내 회원 목록 새로고침 (새로운 등록 요청이 승인되면 표시될 수 있도록)
-    if (activeTab === 'my-members') {
-      loadMyMembers()
-    }
+    
+    // 잠시 후 내 회원 목록 새로고침 (요청이 처리될 시간을 주기 위해)
+    setTimeout(() => {
+      if (activeTab === 'my-members') {
+        loadMyMembers()
+      }
+    }, 1000)
   }
 
   // 컴포넌트 마운트 시 내 회원 목록 로드
