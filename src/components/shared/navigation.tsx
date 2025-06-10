@@ -257,9 +257,9 @@ export default function Navigation({ children }: NavigationProps) {
                 <button
                   onClick={switchRole}
                   className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-md border transition-colors"
-                  title="개발용: 역할 전환"
+                  title={`현재: ${role === 'trainer' ? '트레이너' : '회원'} | 클릭하여 ${role === 'trainer' ? '회원' : '트레이너'}으로 전환`}
                 >
-                  {role === 'trainer' ? '회원으로' : '트레이너로'} 전환
+                  현재: {role === 'trainer' ? '트레이너' : '회원'} → {role === 'trainer' ? '회원' : '트레이너'}
                 </button>
               )}
               

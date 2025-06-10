@@ -161,9 +161,9 @@ export default function MobileNavigation({ children }: MobileNavigationProps) {
               <button
                 onClick={switchRole}
                 className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded text-center transition-colors"
-                title="개발용: 역할 전환"
+                title={`현재: ${role === 'trainer' ? '트레이너' : '회원'}`}
               >
-                {role === 'trainer' ? '회원' : '트레이너'}
+                {role === 'trainer' ? '트레이너' : '회원'}
               </button>
             )}
             
