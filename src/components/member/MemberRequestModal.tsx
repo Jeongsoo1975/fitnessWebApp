@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useAuth } from '@clerk/nextjs'
 import { XMarkIcon, UserIcon, EnvelopeIcon } from '@heroicons/react/24/outline'
+import { showToast } from '@/components/ui/Toast'
 
 interface Member {
   id: string
@@ -59,6 +60,13 @@ export default function MemberRequestModal({
 
       // 성공 처리
       onSuccess(member.id)
+      
+      // 성공 토스트 알림
+      showToast({
+        type: 'success',
+        title: '등록 요청 전송 완료',
+        message: `${member.firstName} ${member.lastName}님에게 등록 요청을 보냈습니다.`
+      })
       
       // 폼 초기화
       setMessage('안녕하세요! 함께 운동하게 되어 기쁩니다. 건강한 운동 습관을 만들어보아요!')

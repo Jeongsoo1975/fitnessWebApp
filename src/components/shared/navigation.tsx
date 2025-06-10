@@ -73,6 +73,15 @@ const memberNavigation: NavigationItem[] = [
     ),
   },
   {
+    name: '알림',
+    href: '/member/notifications',
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM15 17H9a4 4 0 01-4-4V5a2 2 0 012-2h14a2 2 0 012 2v6a4 4 0 01-4 4h-6z" />
+      </svg>
+    ),
+  },
+  {
     name: '운동 일정',
     href: '/member/schedule',
     icon: (

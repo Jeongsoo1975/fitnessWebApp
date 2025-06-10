@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@clerk/nextjs'
 import { BellIcon, CheckIcon, XMarkIcon, ClockIcon } from '@heroicons/react/24/outline'
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid'
+import { showToast } from '@/components/ui/Toast'
 
 interface TrainerRequest {
   id: string
@@ -82,11 +83,13 @@ export default function MemberNotificationManager() {
           : request
       ))
 
-      // 성공 알림 (간단한 방법)
+      // 성공 토스트 알림
       const actionText = status === 'approved' ? '승인' : '거절'
-      setTimeout(() => {
-        alert(`트레이너 요청을 ${actionText}했습니다.`)
-      }, 100)
+      showToast({
+        type: status === 'approved' ? 'success' : 'info',
+        title: `트레이너 요청 ${actionText} 완료`,
+        message: `트레이너 요청을 ${actionText}했습니다.`
+      })
 
     } catch (error) {
       console.error('Error updating request status:', error)
