@@ -1,16 +1,7 @@
 import type { Metadata } from 'next'
 import ConditionalClerkProvider from '@/components/shared/conditional-clerk-provider'
-import dynamic from 'next/dynamic'
+import PerformanceMonitorWrapper from '@/components/shared/PerformanceMonitorWrapper'
 import './globals.css'
-
-// 개발 환경에서만 PerformanceMonitor 로드
-const PerformanceMonitor = dynamic(
-  () => import('@/components/shared/PerformanceMonitor'),
-  { 
-    ssr: false,
-    loading: () => null
-  }
-)
 
 export const metadata: Metadata = {
   title: 'FitnessWebApp - Personal Training Management',
@@ -75,7 +66,7 @@ export default function RootLayout({
         </div>
 
         {/* Performance Monitor (development only) */}
-        {process.env.NODE_ENV === 'development' && <PerformanceMonitor />}
+        <PerformanceMonitorWrapper />
 
         {/* Screen reader announcements container */}
         <div 
