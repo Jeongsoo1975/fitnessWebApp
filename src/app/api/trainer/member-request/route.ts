@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireRole, getCurrentUser } from '@/lib/auth'
+import { requireRole, getCurrentUser, validateUserByEmail } from '@/lib/auth'
 import { mockDataStore } from '@/lib/mockData'
 
-// Clerk Client 대신 간단한 방식 사용
+// 실제 Clerk 사용자 검증을 통한 안전한 회원 등록 요청
 
-// POST /api/trainer/member-request - 회원 등록 요청 보내기
+// POST /api/trainer/member-request - 회원 등록 요청 보내기 (사용자 검증 포함)
 export async function POST(request: NextRequest) {
   console.log('POST /api/trainer/member-request - Request received')
   
@@ -32,17 +32,65 @@ export async function POST(request: NextRequest) {
 
     // 입력값 검증
     if (!memberId) {
-      console.log('Member ID is missing')
+      console.log('[member-request] Member ID is missing')
       return NextResponse.json(
         { error: 'Member ID is required' },
         { status: 400 }
       )
     }
 
-    // 회원 존재 여부 확인 (전달받은 정보 활용)
-    console.log('Processing request for member ID:', memberId)
+    // === 새로운 사용자 존재 검증 단계 ===
+    console.log('[member-request] Validating user existence for:', memberId)
     
-    const member = {
+    let validatedUser = null
+    let actualMemberId = memberId
+    
+    // 이메일 형태인 경우 실제 Clerk 사용자 검증
+    if (memberId.includes('@')) {
+      console.log('[member-request] Email format detected, validating with Clerk API')
+      
+      validatedUser = await validateUserByEmail(memberId)
+      
+      if (!validatedUser) {
+        console.log('[member-request] User validation failed - user does not exist:', memberId)
+        return NextResponse.json(
+          { 
+            error: 'User not found',
+            message: '해당 이메일로 등록된 사용자를 찾을 수 없습니다. 올바른 이메일 주소인지 확인해주세요.' 
+          },
+          { status: 404 }
+        )
+      }
+      
+      // 검증된 사용자 정보 사용
+      actualMemberId = validatedUser.id // 실제 Clerk 사용자 ID 사용
+      console.log('[member-request] User validation successful:', validatedUser.id)
+      
+      // 자기 자신에게 요청하는 것 방지
+      if (actualMemberId === currentUser.id) {
+        console.log('[member-request] Cannot send request to self')
+        return NextResponse.json(
+          { 
+            error: 'Invalid request',
+            message: '자기 자신에게는 등록 요청을 보낼 수 없습니다.' 
+          },
+          { status: 400 }
+        )
+      }
+      
+    } else {
+      // 기존 ID 형태인 경우 (mockData 호환성)
+      console.log('[member-request] Using provided ID without email validation:', memberId)
+    }
+
+    // 회원 정보 구성 (검증된 정보 또는 전달받은 정보 사용)
+    const member = validatedUser ? {
+      id: validatedUser.id,
+      firstName: validatedUser.firstName || '사용자',
+      lastName: validatedUser.lastName || '',
+      email: validatedUser.email,
+      isRegistered: false
+    } : {
       id: memberId,
       firstName: memberFirstName || '사용자',
       lastName: memberLastName || '',
@@ -50,7 +98,7 @@ export async function POST(request: NextRequest) {
       isRegistered: false
     }
     
-    console.log('Member info for request:', member)
+    console.log('[member-request] Final member info for request:', member)
 
     // 이미 등록된 회원인지 확인
     if (member.isRegistered) {
@@ -74,39 +122,38 @@ export async function POST(request: NextRequest) {
     }
 
     // 새로운 등록 요청 생성
-    // memberId가 이메일인 경우, 실제 사용자를 찾아서 Clerk ID를 사용해야 함
-    let actualMemberId = memberId
-    
-    // memberId가 이메일 형태라면, 이를 그대로 사용하거나 다른 방식으로 처리
-    if (memberId.includes('@')) {
-      console.log('MemberId is email format, using as is for now:', memberId)
-      actualMemberId = memberId // 이메일을 ID로 사용
-    }
+    console.log('[member-request] Creating new request with validated member ID:', actualMemberId)
     
     const newRequest = mockDataStore.addMemberRequest({
       trainerId: currentUser.id,
-      memberId: actualMemberId, // 실제 회원 ID 또는 이메일
+      memberId: actualMemberId, // 검증된 실제 회원 ID 사용
       message: message || '함께 운동하게 되어 기쁩니다!'
     })
 
     // 개발 환경 로깅
     if (process.env.NODE_ENV === 'development') {
-      console.log('New member request created:')
+      console.log('[member-request] New member request created successfully:')
       console.log('- Request ID:', newRequest.id)
       console.log('- Trainer ID:', newRequest.trainerId)
-      console.log('- Member ID:', newRequest.memberId)
+      console.log('- Member ID (validated):', newRequest.memberId)
+      console.log('- Original Input:', memberId)
       console.log('- Message:', newRequest.message)
-      console.log('- All requests after creation:', mockDataStore.getAllRequests())
+      console.log('- User Validation:', validatedUser ? 'SUCCESS' : 'SKIPPED')
     }
 
     return NextResponse.json({
       success: true,
       requestId: newRequest.id,
-      message: 'Member request sent successfully'
+      message: 'Member request sent successfully',
+      memberInfo: {
+        id: member.id,
+        name: `${member.firstName} ${member.lastName}`,
+        email: member.email
+      }
     })
 
   } catch (error) {
-    console.error('Error creating member request:', error)
+    console.error('[member-request] Error creating member request:', error)
     
     if (error instanceof Error && error.message.includes('unauthorized')) {
       return NextResponse.json(
@@ -116,7 +163,10 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to send member request' },
+      { 
+        error: 'Failed to send member request',
+        message: '요청 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+      },
       { status: 500 }
     )
   }
