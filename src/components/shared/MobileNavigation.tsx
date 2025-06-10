@@ -118,6 +118,16 @@ export default function MobileNavigation({ children }: MobileNavigationProps) {
   const pathname = usePathname()
   const { role, isLoading } = useUserRole()
 
+  // 개발용 역할 전환 함수
+  const switchRole = () => {
+    const newRole = role === 'trainer' ? 'member' : 'trainer'
+    localStorage.setItem('userRole', newRole)
+    
+    // 새로운 역할에 맞는 대시보드로 이동
+    const targetUrl = newRole === 'trainer' ? '/trainer/dashboard' : '/member/dashboard'
+    window.location.href = targetUrl
+  }
+
   if (isLoading) {
     return null
   }
@@ -144,8 +154,19 @@ export default function MobileNavigation({ children }: MobileNavigationProps) {
             <span className="ml-2 text-lg font-semibold text-gray-900">FitnessApp</span>
           </div>
           
-          {/* 사용자 프로필 */}
-          <div className="flex items-center">
+          {/* 사용자 프로필 및 개발 도구 */}
+          <div className="flex items-center space-x-2">
+            {/* 개발용 역할 전환 버튼 */}
+            {process.env.NODE_ENV === 'development' && (
+              <button
+                onClick={switchRole}
+                className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded text-center transition-colors"
+                title="개발용: 역할 전환"
+              >
+                {role === 'trainer' ? '회원' : '트레이너'}
+              </button>
+            )}
+            
             <UserButton afterSignOutUrl="/sign-in" />
           </div>
         </div>

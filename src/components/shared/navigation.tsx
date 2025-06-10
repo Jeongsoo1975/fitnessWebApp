@@ -119,6 +119,16 @@ export default function Navigation({ children }: NavigationProps) {
   const pathname = usePathname()
   const { role, isLoading } = useUserRole()
 
+  // 개발용 역할 전환 함수
+  const switchRole = () => {
+    const newRole = role === 'trainer' ? 'member' : 'trainer'
+    localStorage.setItem('userRole', newRole)
+    
+    // 새로운 역할에 맞는 대시보드로 이동
+    const targetUrl = newRole === 'trainer' ? '/trainer/dashboard' : '/member/dashboard'
+    window.location.href = targetUrl
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -241,7 +251,18 @@ export default function Navigation({ children }: NavigationProps) {
                 {roleTitle} 대시보드
               </h1>
             </div>
-            <div className="ml-4 flex items-center md:ml-6">
+            <div className="ml-4 flex items-center md:ml-6 space-x-3">
+              {/* 개발용 역할 전환 버튼 */}
+              {process.env.NODE_ENV === 'development' && (
+                <button
+                  onClick={switchRole}
+                  className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-md border transition-colors"
+                  title="개발용: 역할 전환"
+                >
+                  {role === 'trainer' ? '회원으로' : '트레이너로'} 전환
+                </button>
+              )}
+              
               <UserButton afterSignOutUrl="/sign-in" />
             </div>
           </div>
