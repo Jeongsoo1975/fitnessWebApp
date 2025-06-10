@@ -111,7 +111,7 @@ let mockMembers: MockMemberProfile[] = [
 let mockTrainerMemberRequests: MockTrainerMemberRequest[] = [
   {
     id: '1',
-    trainerId: 'trainer1',
+    trainerId: 'user_2yGfgge9dGRBLeuxJSMzElVzite',
     memberId: '1',
     status: 'approved',
     message: '함께 운동하게 되어 기쁩니다!',
@@ -120,7 +120,7 @@ let mockTrainerMemberRequests: MockTrainerMemberRequest[] = [
   },
   {
     id: '2',
-    trainerId: 'trainer1',
+    trainerId: 'user_2yGfgge9dGRBLeuxJSMzElVzite',
     memberId: '5',
     status: 'approved',
     message: '건강한 운동 습관을 만들어보세요.',
