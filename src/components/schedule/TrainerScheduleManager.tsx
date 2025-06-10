@@ -200,13 +200,25 @@ export default function TrainerScheduleManager() {
         </div>
 
         {/* 새 스케줄 추가 버튼 */}
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="mobile-button bg-blue-600 text-white flex items-center gap-2"
-        >
-          <PlusIcon className="w-5 h-5" />
-          새 스케줄 추가
-        </button>
+        <div className="flex flex-col items-end space-y-2">
+          {/* 선택된 날짜 표시 */}
+          <div className="text-sm text-gray-600">
+            선택된 날짜: {selectedDate.toLocaleDateString('ko-KR', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              weekday: 'short'
+            })}
+          </div>
+          
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="mobile-button bg-blue-600 text-white flex items-center gap-2"
+          >
+            <PlusIcon className="w-5 h-5" />
+            새 스케줄 추가
+          </button>
+        </div>
       </div>
 
       {/* 메인 컨텐츠 */}
@@ -214,6 +226,8 @@ export default function TrainerScheduleManager() {
         {viewMode === 'calendar' ? (
           <TrainerScheduleCalendar
             schedules={schedules}
+            selectedDate={selectedDate}
+            onDateSelect={setSelectedDate}
             onScheduleClick={(schedule) => {
               // 스케줄 클릭 시 상세 보기 또는 편집 모달
               console.log('Schedule clicked:', schedule)

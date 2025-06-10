@@ -18,12 +18,16 @@ interface Schedule {
 
 interface TrainerScheduleCalendarProps {
   schedules: Schedule[]
+  selectedDate?: Date
+  onDateSelect?: (date: Date) => void
   onScheduleClick: (schedule: Schedule) => void
   onDeleteSchedule: (scheduleId: string) => void
 }
 
 export default function TrainerScheduleCalendar({
   schedules,
+  selectedDate,
+  onDateSelect,
   onScheduleClick,
   onDeleteSchedule
 }: TrainerScheduleCalendarProps) {
@@ -73,6 +77,19 @@ export default function TrainerScheduleCalendar({
   const isToday = (date: Date) => {
     const today = new Date()
     return date.toDateString() === today.toDateString()
+  }
+
+  // 선택된 날짜인지 확인
+  const isSelectedDate = (date: Date) => {
+    if (!selectedDate) return false
+    return date.toDateString() === selectedDate.toDateString()
+  }
+
+  // 날짜 클릭 핸들러
+  const handleDateClick = (date: Date) => {
+    if (onDateSelect) {
+      onDateSelect(date)
+    }
   }
 
   const weekDays = ['일', '월', '화', '수', '목', '금', '토']
@@ -139,9 +156,12 @@ export default function TrainerScheduleCalendar({
             return (
               <div
                 key={index}
-                className={`min-h-[100px] p-2 border-r border-b border-gray-200 ${
-                  !isCurrentMonthDay ? 'bg-gray-50' : 'bg-white'
-                } ${index % 7 === 6 ? 'border-r-0' : ''}`}
+                onClick={() => handleDateClick(day)}
+                className={`min-h-[100px] p-2 border-r border-b border-gray-200 cursor-pointer transition-colors ${
+                  !isCurrentMonthDay ? 'bg-gray-50 hover:bg-gray-100' : 'bg-white hover:bg-blue-50'
+                } ${index % 7 === 6 ? 'border-r-0' : ''} ${
+                  isSelectedDate(day) ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                }`}
               >
                 {/* 날짜 숫자 */}
                 <div className="flex items-center justify-between mb-1">
