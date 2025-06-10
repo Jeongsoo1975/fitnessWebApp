@@ -95,17 +95,23 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error searching members:', error)
+    console.error('[member-search] Error searching members:', error)
     
     if (error instanceof Error && error.message.includes('unauthorized')) {
       return NextResponse.json(
-        { error: 'Unauthorized access' },
+        { 
+          error: 'Unauthorized access',
+          message: '권한이 없습니다. 다시 로그인해주세요.'
+        },
         { status: 403 }
       )
     }
 
     return NextResponse.json(
-      { error: 'Failed to search members' },
+      { 
+        error: 'Search failed',
+        message: '회원 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
+      },
       { status: 500 }
     )
   }

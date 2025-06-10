@@ -196,3 +196,34 @@ export async function validateUserWithRole(email: string, expectedRole?: UserRol
     return false
   }
 }
+
+// Get validation system statistics for monitoring
+export async function getValidationStats(): Promise<{
+  isHealthy: boolean
+  lastCheck: string
+  functionsAvailable: string[]
+}> {
+  const stats = {
+    isHealthy: true,
+    lastCheck: new Date().toISOString(),
+    functionsAvailable: [
+      'validateUserByEmail',
+      'searchValidUsers', 
+      'validateUserWithRole'
+    ]
+  }
+  
+  try {
+    // Test if all validation functions are properly loaded
+    const functions = [validateUserByEmail, searchValidUsers, validateUserWithRole]
+    stats.isHealthy = functions.every(fn => typeof fn === 'function')
+    
+    console.log('[getValidationStats] Validation system health:', stats.isHealthy)
+    return stats
+    
+  } catch (error) {
+    console.error('[getValidationStats] Error checking validation stats:', error)
+    stats.isHealthy = false
+    return stats
+  }
+}
