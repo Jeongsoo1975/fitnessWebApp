@@ -219,6 +219,11 @@ export const mockDataStore = {
     return mockTrainerMemberRequests.filter(request => request.memberId === memberId)
   },
 
+  // 디버깅용: 모든 요청 조회
+  getAllRequests: () => {
+    return [...mockTrainerMemberRequests]
+  },
+
   updateRequestStatus: (id: string, status: 'approved' | 'rejected') => {
     const index = mockTrainerMemberRequests.findIndex(request => request.id === id)
     if (index !== -1) {

@@ -20,7 +20,14 @@ export async function GET(request: NextRequest) {
     }
 
     // 회원이 받은 트레이너 요청 목록 조회
+    console.log('Looking for requests for member ID:', currentUser.id)
+    
+    // 먼저 모든 요청을 확인해보자
+    const allRequests = mockDataStore.getAllRequests()
+    console.log('All requests in system:', allRequests)
+    
     const memberRequests = mockDataStore.getMemberRequests(currentUser.id)
+    console.log('Found requests for current user:', memberRequests)
     
     // 트레이너 정보와 함께 반환하기 위해 요청 데이터 가공
     const requestsWithTrainerInfo = memberRequests.map(request => {
