@@ -1,4 +1,82 @@
- setActiveTab('my-members')}
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useAuth } from '@clerk/nextjs'
+import MemberSearchComponent from './MemberSearchComponent'
+
+interface TrainerMember {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  requestId?: string
+}
+
+export default function TrainerMemberManager() {
+  const { getToken } = useAuth()
+  const [activeTab, setActiveTab] = useState<'my-members' | 'search'>('my-members')
+  const [myMembers, setMyMembers] = useState<TrainerMember[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // 내 회원 목록 로드
+  const loadMyMembers = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      // TODO: API 엔드포인트가 구현되면 실제 데이터 로드
+      // 현재는 mockDataStore를 직접 호출할 수 없으므로 더미 데이터 사용
+      const dummyMembers: TrainerMember[] = [
+        {
+          id: '1',
+          firstName: '김',
+          lastName: '회원',
+          email: 'member1@example.com',
+          requestId: '1'
+        },
+        {
+          id: '5',
+          firstName: '정',
+          lastName: '회원',
+          email: 'member5@example.com',
+          requestId: '2'
+        }
+      ]
+      
+      setMyMembers(dummyMembers)
+    } catch (error) {
+      console.error('Error loading my members:', error)
+      setError('회원 목록을 불러오는데 실패했습니다.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // 등록 요청 성공 처리
+  const handleRequestSent = (memberId: string) => {
+    // 알림 표시
+    setError(null)
+    // 내 회원 목록 새로고침 (새로운 등록 요청이 승인되면 표시될 수 있도록)
+    if (activeTab === 'my-members') {
+      loadMyMembers()
+    }
+  }
+
+  // 컴포넌트 마운트 시 내 회원 목록 로드
+  useEffect(() => {
+    if (activeTab === 'my-members') {
+      loadMyMembers()
+    }
+  }, [activeTab])
+
+  return (
+    <div className="bg-white shadow rounded-lg">
+      {/* 탭 네비게이션 */}
+      <div className="border-b border-gray-200">
+        <nav className="flex space-x-8 px-6">
+          <button
+            onClick={() => setActiveTab('my-members')}
             className={`py-4 px-1 border-b-2 font-medium text-sm ${
               activeTab === 'my-members'
                 ? 'border-blue-500 text-blue-600'
