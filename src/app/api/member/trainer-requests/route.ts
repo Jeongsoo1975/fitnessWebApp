@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRole, getCurrentUser } from '@/lib/auth'
 import { mockDataStore } from '@/lib/mockData'
-import { clerkClient } from '@clerk/nextjs/server'
 
-// export const runtime = 'edge' // Clerk 인증과 호환성을 위해 Node.js runtime 사용
+// Clerk Client 대신 간단한 방식 사용
 
 // GET /api/member/trainer-requests - 받은 트레이너 요청 목록 조회
 export async function GET(request: NextRequest) {
@@ -21,48 +20,40 @@ export async function GET(request: NextRequest) {
     }
 
     // 회원이 받은 트레이너 요청 목록 조회
-    console.log('Looking for requests for member ID:', currentUser.id)
+    // 현재 사용자의 이메일을 memberId로 사용
+    const currentUserEmail = currentUser.emailAddresses?.[0]?.emailAddress
+    console.log('Looking for requests for member email:', currentUserEmail)
     
     // 먼저 모든 요청을 확인해보자
     const allRequests = mockDataStore.getAllRequests()
     console.log('All requests in system:', allRequests)
     
-    const memberRequests = mockDataStore.getMemberRequests(currentUser.id)
+    // Clerk ID와 이메일 둘 다로 검색
+    let memberRequests = mockDataStore.getMemberRequests(currentUser.id)
+    if (memberRequests.length === 0 && currentUserEmail) {
+      memberRequests = mockDataStore.getMemberRequests(currentUserEmail)
+    }
+    
     console.log('Found requests for current user:', memberRequests)
     
     // 트레이너 정보와 함께 반환하기 위해 요청 데이터 가공
-    const requestsWithTrainerInfo = await Promise.all(
-      memberRequests.map(async (request) => {
-        // 실제 트레이너 정보를 Clerk에서 조회
-        let trainerInfo = {
-          id: request.trainerId,
-          name: `트레이너 ${request.trainerId}`,
-          email: `trainer${request.trainerId}@example.com`
-        }
-        
-        try {
-          const trainerUser = await clerkClient.users.getUser(request.trainerId)
-          if (trainerUser) {
-            trainerInfo = {
-              id: trainerUser.id,
-              name: `${trainerUser.firstName || '트레이너'} ${trainerUser.lastName || ''}`.trim(),
-              email: trainerUser.emailAddresses[0]?.emailAddress || ''
-            }
-          }
-        } catch (error) {
-          console.error('Failed to fetch trainer info:', error)
-        }
-        
-        return {
-          id: request.id,
-          trainer: trainerInfo,
-          message: request.message,
-          status: request.status,
-          createdAt: request.createdAt,
-          updatedAt: request.updatedAt
-        }
-      })
-    )
+    const requestsWithTrainerInfo = memberRequests.map(request => {
+      // 간단한 트레이너 정보 처리
+      const trainerInfo = {
+        id: request.trainerId,
+        name: `트레이너`,
+        email: `trainer@example.com`
+      }
+      
+      return {
+        id: request.id,
+        trainer: trainerInfo,
+        message: request.message,
+        status: request.status,
+        createdAt: request.createdAt,
+        updatedAt: request.updatedAt
+      }
+    })
 
     // 개발 환경 로깅
     if (process.env.NODE_ENV === 'development') {

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRole, getCurrentUser } from '@/lib/auth'
 import { mockDataStore } from '@/lib/mockData'
-import { clerkClient } from '@clerk/nextjs/server'
 
-// export const runtime = 'edge' // Clerk Client는 Node.js runtime에서만 작동
+// Clerk Client는 서버리스 환경에서 제한적이므로 백엔드 API 대신 간단한 시뮬레이션 사용
 
 // GET /api/trainer/member-search - 회원 검색
 export async function GET(request: NextRequest) {
@@ -32,49 +31,34 @@ export async function GET(request: NextRequest) {
     let searchResults = []
 
     try {
-      // Clerk에서 실제 사용자 검색
-      if (query.length > 0) {
-        // 이메일로 검색
-        if (query.includes('@')) {
-          const users = await clerkClient.users.getUserList({
-            emailAddress: [query],
-            limit: 10
-          })
+      // 실제 이메일로 검색하는 경우, 임시 사용자 정보 반환
+      if (query.includes('@')) {
+        // 현재 사용자의 이메일과 다른 경우에만 검색 결과 반환
+        const currentUserEmail = currentUser.emailAddresses?.[0]?.emailAddress
+        
+        if (query !== currentUserEmail) {
+          // 실제 회원 계정이 있다고 가정하고 검색 결과 반환
+          const emailParts = query.split('@')
+          const username = emailParts[0]
           
-          searchResults = users.data.map(user => ({
-            id: user.id, // Clerk 사용자 ID 사용
-            firstName: user.firstName || '사용자',
-            lastName: user.lastName || '',
-            email: user.emailAddresses[0]?.emailAddress || '',
-            isRegistered: false // 실제로는 DB에서 확인해야 함
-          }))
-        } else {
-          // 이름으로 검색
-          const users = await clerkClient.users.getUserList({
-            query: query,
-            limit: 10
-          })
+          searchResults = [{
+            id: query, // 실제 테스트에서는 이메일을 ID로 사용
+            firstName: username.charAt(0).toUpperCase() + username.slice(1),
+            lastName: '회원',
+            email: query,
+            isRegistered: false
+          }]
           
-          searchResults = users.data
-            .filter(user => {
-              const fullName = `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase()
-              return fullName.includes(query.toLowerCase())
-            })
-            .map(user => ({
-              id: user.id,
-              firstName: user.firstName || '사용자',
-              lastName: user.lastName || '',
-              email: user.emailAddresses[0]?.emailAddress || '',
-              isRegistered: false
-            }))
+          console.log('Created search result for email:', query)
         }
+      } else {
+        // 이름으로 검색하는 경우 mockData 활용
+        const mockResults = mockDataStore.searchMembers(query)
+        searchResults = mockResults.filter(member => !member.isRegistered)
       }
       
-      // 현재 사용자 자신은 제외
-      searchResults = searchResults.filter(user => user.id !== currentUser.id)
-      
-    } catch (clerkError) {
-      console.error('Clerk search error:', clerkError)
+    } catch (error) {
+      console.error('Search error:', error)
       searchResults = []
     }
 

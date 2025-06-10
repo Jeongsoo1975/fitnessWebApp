@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRole, getCurrentUser } from '@/lib/auth'
 import { mockDataStore } from '@/lib/mockData'
-import { clerkClient } from '@clerk/nextjs/server'
 
-// export const runtime = 'edge' // Clerk 인증과 호환성을 위해 Node.js runtime 사용
+// Clerk Client 대신 간단한 방식 사용
 
 // POST /api/trainer/member-request - 회원 등록 요청 보내기
 export async function POST(request: NextRequest) {
@@ -40,33 +39,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 회원 존재 여부 확인 (Clerk에서 직접 확인)
-    console.log('Looking for member with Clerk ID:', memberId)
+    // 회원 존재 여부 확인 (전달받은 정보 활용)
+    console.log('Processing request for member ID:', memberId)
     
-    let member = null
-    try {
-      const clerkUser = await clerkClient.users.getUser(memberId)
-      if (clerkUser) {
-        member = {
-          id: clerkUser.id,
-          firstName: clerkUser.firstName || memberFirstName || '사용자',
-          lastName: clerkUser.lastName || memberLastName || '',
-          email: clerkUser.emailAddresses[0]?.emailAddress || memberEmail || '',
-          isRegistered: false
-        }
-        console.log('Found Clerk user:', member)
-      }
-    } catch (clerkError) {
-      console.error('Clerk user lookup failed:', clerkError)
+    const member = {
+      id: memberId,
+      firstName: memberFirstName || '사용자',
+      lastName: memberLastName || '',
+      email: memberEmail || '',
+      isRegistered: false
     }
     
-    if (!member) {
-      console.log('Member not found with Clerk ID:', memberId)
-      return NextResponse.json(
-        { error: 'Member not found' },
-        { status: 404 }
-      )
-    }
+    console.log('Member info for request:', member)
 
     // 이미 등록된 회원인지 확인
     if (member.isRegistered) {
