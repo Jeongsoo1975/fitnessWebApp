@@ -1,401 +1,236 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ChevronLeftIcon, ChevronRightIcon, PlusIcon } from '@heroicons/react/24/outline'
-import { ClockIcon, UserIcon, CheckCircleIcon } from '@heroicons/react/24/solid'
+import { useState } from 'react'
+import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 
-interface ScheduleItem {
+interface Schedule {
   id: string
+  date: string
   title: string
-  trainerName?: string
-  trainerAvatar?: string
-  startTime: string
-  endTime: string
-  date: string
-  type: 'pt' | 'group' | 'personal' | 'workout'
-  status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled'
-  location?: string
   notes?: string
-  color: string
-}
-
-interface CalendarDay {
-  date: string
-  isCurrentMonth: boolean
-  isToday: boolean
-  schedules: ScheduleItem[]
+  status: 'scheduled' | 'completed' | 'cancelled'
+  memberName?: string
+  memberId?: string
+  createdAt: string
+  updatedAt?: string
 }
 
 interface MemberScheduleCalendarProps {
-  onAddSchedule?: () => void
+  schedules: Schedule[]
+  selectedDate?: Date
+  onDateSelect?: (date: Date) => void
+  onScheduleClick: (schedule: Schedule) => void
 }
 
-const SCHEDULE_TYPES = {
-  pt: { label: 'PT 세션', color: 'bg-blue-500', textColor: 'text-blue-700', bgColor: 'bg-blue-50' },
-  group: { label: '그룹 수업', color: 'bg-green-500', textColor: 'text-green-700', bgColor: 'bg-green-50' },
-  personal: { label: '개인 운동', color: 'bg-purple-500', textColor: 'text-purple-700', bgColor: 'bg-purple-50' },
-  workout: { label: '운동 계획', color: 'bg-orange-500', textColor: 'text-orange-700', bgColor: 'bg-orange-50' }
-}
-
-const STATUS_TYPES = {
-  scheduled: { label: '예정', color: 'bg-blue-100 text-blue-800' },
-  'in-progress': { label: '진행중', color: 'bg-yellow-100 text-yellow-800' },
-  completed: { label: '완료', color: 'bg-green-100 text-green-800' },
-  cancelled: { label: '취소', color: 'bg-red-100 text-red-800' }
-}
-
-export default function MemberScheduleCalendar({ onAddSchedule }: MemberScheduleCalendarProps) {
+export default function MemberScheduleCalendar({
+  schedules,
+  selectedDate,
+  onDateSelect,
+  onScheduleClick
+}: MemberScheduleCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [selectedDate, setSelectedDate] = useState(new Date())
-  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar')
-  const [schedules, setSchedules] = useState<ScheduleItem[]>([])
 
-  // 회원용 샘플 데이터
-  useEffect(() => {
-    const sampleSchedules: ScheduleItem[] = [
-      {
-        id: '1',
-        title: 'PT 세션',
-        trainerName: '김코치',
-        startTime: '09:00',
-        endTime: '10:00',
-        date: '2025-06-10',
-        type: 'pt',
-        status: 'completed',
-        location: '운동실 A',
-        color: 'blue'
-      },
-      {
-        id: '2',
-        title: '상체 집중 운동',
-        startTime: '10:30',
-        endTime: '11:30',
-        date: '2025-06-10',
-        type: 'personal',
-        status: 'completed',
-        location: '3층 헬스장',
-        color: 'purple'
-      },
-      {
-        id: '3',
-        title: 'PT 세션',
-        trainerName: '이코치',
-        startTime: '14:00',
-        endTime: '15:00',
-        date: '2025-06-10',
-        type: 'pt',
-        status: 'scheduled',
-        location: '운동실 B',
-        color: 'blue'
-      },
-      {
-        id: '4',
-        title: 'PT 세션',
-        trainerName: '김코치',
-        startTime: '16:00',
-        endTime: '17:00',
-        date: '2025-06-11',
-        type: 'pt',
-        status: 'scheduled',
-        location: '운동실 A',
-        color: 'blue'
-      },
-      {
-        id: '5',
-        title: '하체 운동 계획',
-        startTime: '19:00',
-        endTime: '20:00',
-        date: '2025-06-11',
-        type: 'workout',
-        status: 'scheduled',
-        location: '3층 헬스장',
-        color: 'orange'
-      }
-    ]
-    setSchedules(sampleSchedules)
-  }, [])
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long'
-    })
+  // 달력 네비게이션
+  const goToPreviousMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))
   }
 
-  const getCalendarDays = (): CalendarDay[] => {
-    const year = currentDate.getFullYear()
-    const month = currentDate.getMonth()
-    
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
-    const startDate = new Date(firstDay)
-    startDate.setDate(startDate.getDate() - firstDay.getDay())
-    
-    const days: CalendarDay[] = []
+  const goToNextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))
+  }
+
+  const goToToday = () => {
+    setCurrentDate(new Date())
+  }
+
+  // 현재 월의 달력 데이터 생성
+  const year = currentDate.getFullYear()
+  const month = currentDate.getMonth()
+  const firstDay = new Date(year, month, 1)
+  const lastDay = new Date(year, month + 1, 0)
+  const startDate = new Date(firstDay)
+  startDate.setDate(startDate.getDate() - firstDay.getDay()) // 일요일부터 시작
+
+  const days = []
+  const current = new Date(startDate)
+
+  for (let i = 0; i < 42; i++) {
+    days.push(new Date(current))
+    current.setDate(current.getDate() + 1)
+  }
+
+  // 특정 날짜의 스케줄 가져오기
+  const getSchedulesForDate = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0]
+    return schedules.filter(schedule => schedule.date === dateStr)
+  }
+
+  // 날짜가 현재 월에 속하는지 확인
+  const isCurrentMonth = (date: Date) => {
+    return date.getMonth() === month
+  }
+
+  // 오늘 날짜인지 확인
+  const isToday = (date: Date) => {
     const today = new Date()
-    
-    for (let i = 0; i < 42; i++) {
-      const date = new Date(startDate)
-      date.setDate(startDate.getDate() + i)
-      
-      const dateString = date.toISOString().split('T')[0]
-      const daySchedules = schedules.filter(schedule => schedule.date === dateString)
-      
-      days.push({
-        date: dateString,
-        isCurrentMonth: date.getMonth() === month,
-        isToday: date.toDateString() === today.toDateString(),
-        schedules: daySchedules
-      })
+    return date.toDateString() === today.toDateString()
+  }
+
+  // 선택된 날짜인지 확인
+  const isSelectedDate = (date: Date) => {
+    if (!selectedDate) return false
+    return date.toDateString() === selectedDate.toDateString()
+  }
+
+  // 날짜 클릭 핸들러
+  const handleDateClick = (date: Date) => {
+    if (onDateSelect) {
+      onDateSelect(date)
     }
-    
-    return days
   }
 
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    const newDate = new Date(currentDate)
-    newDate.setMonth(currentDate.getMonth() + (direction === 'next' ? 1 : -1))
-    setCurrentDate(newDate)
-  }
-
-  const getSelectedDateSchedules = () => {
-    const dateString = selectedDate.toISOString().split('T')[0]
-    return schedules.filter(schedule => schedule.date === dateString)
-      .sort((a, b) => a.startTime.localeCompare(b.startTime))
-  }
+  const weekDays = ['일', '월', '화', '수', '목', '금', '토']
+  const monthNames = [
+    '1월', '2월', '3월', '4월', '5월', '6월',
+    '7월', '8월', '9월', '10월', '11월', '12월'
+  ]
 
   return (
-    <div className="mobile-container-full">
-      <div className="mobile-card">
-        {/* 헤더 */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="mobile-heading">나의 운동 일정</h2>
-            <p className="mobile-caption mt-1">
-              {selectedDate.toLocaleDateString('ko-KR', {
-                month: 'long',
-                day: 'numeric',
-                weekday: 'long'
-              })}
-            </p>
-          </div>
-          
-          {/* 뷰 모드 토글 */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('calendar')}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-all touch-target ${
-                viewMode === 'calendar'
-                  ? 'bg-white text-green-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+    <div className="space-y-4">
+      {/* 달력 헤더 */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <h2 className="text-lg font-semibold text-gray-900">
+            {year}년 {monthNames[month]}
+          </h2>
+          <button
+            onClick={goToToday}
+            className="px-3 py-1 text-sm font-medium text-green-600 hover:text-green-800 rounded-md hover:bg-green-50"
+          >
+            오늘
+          </button>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={goToPreviousMonth}
+            className="p-2 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100"
+          >
+            <ChevronLeftIcon className="w-5 h-5" />
+          </button>
+          <button
+            onClick={goToNextMonth}
+            className="p-2 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100"
+          >
+            <ChevronRightIcon className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* 달력 그리드 */}
+      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+        {/* 요일 헤더 */}
+        <div className="grid grid-cols-7 bg-gray-50">
+          {weekDays.map((day, index) => (
+            <div
+              key={index}
+              className={`p-3 text-center text-sm font-medium ${
+                index === 0 ? 'text-red-600' : index === 6 ? 'text-blue-600' : 'text-gray-900'
               }`}
             >
-              캘린더
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-all touch-target ${
-                viewMode === 'list'
-                  ? 'bg-white text-green-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              목록
-            </button>
-          </div>
+              {day}
+            </div>
+          ))}
         </div>
 
-        {viewMode === 'calendar' ? (
-          <>
-            {/* 캘린더 네비게이션 */}
-            <div className="flex items-center justify-between mb-4">
-              <button
-                onClick={() => navigateMonth('prev')}
-                className="touch-target p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ChevronLeftIcon className="w-5 h-5 text-gray-600" />
-              </button>
-              
-              <h3 className="mobile-subheading">{formatDate(currentDate)}</h3>
-              
-              <button
-                onClick={() => navigateMonth('next')}
-                className="touch-target p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ChevronRightIcon className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
+        {/* 날짜 그리드 */}
+        <div className="grid grid-cols-7">
+          {days.map((day, index) => {
+            const daySchedules = getSchedulesForDate(day)
+            const isCurrentMonthDay = isCurrentMonth(day)
+            const isTodayDay = isToday(day)
 
-            {/* 요일 헤더 */}
-            <div className="grid grid-cols-7 gap-1 mb-2">
-              {['일', '월', '화', '수', '목', '금', '토'].map((day, index) => (
-                <div key={day} className="p-2 text-center">
-                  <span className={`mobile-caption font-medium ${
-                    index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-gray-500'
-                  }`}>
-                    {day}
+            return (
+              <div
+                key={index}
+                onClick={() => handleDateClick(day)}
+                className={`min-h-[100px] p-2 border-r border-b border-gray-200 cursor-pointer transition-colors ${
+                  !isCurrentMonthDay ? 'bg-gray-50 hover:bg-gray-100' : 'bg-white hover:bg-green-50'
+                } ${index % 7 === 6 ? 'border-r-0' : ''} ${
+                  isSelectedDate(day) ? 'ring-2 ring-green-500 bg-green-50' : ''
+                }`}
+              >
+                {/* 날짜 숫자 */}
+                <div className="flex items-center justify-between mb-1">
+                  <span
+                    className={`text-sm font-medium ${
+                      !isCurrentMonthDay
+                        ? 'text-gray-400'
+                        : isTodayDay
+                        ? 'bg-green-600 text-white w-6 h-6 rounded-full flex items-center justify-center'
+                        : index % 7 === 0
+                        ? 'text-red-600'
+                        : index % 7 === 6
+                        ? 'text-blue-600'
+                        : 'text-gray-900'
+                    }`}
+                  >
+                    {day.getDate()}
                   </span>
                 </div>
-              ))}
-            </div>
 
-            {/* 캘린더 그리드 */}
-            <div className="grid grid-cols-7 gap-1">
-              {getCalendarDays().map((day, index) => (
-                <button
-                  key={`${day.date}-${index}`}
-                  onClick={() => setSelectedDate(new Date(day.date))}
-                  className={`touch-target-large p-2 rounded-lg transition-all ${
-                    !day.isCurrentMonth
-                      ? 'text-gray-300'
-                      : day.isToday
-                      ? 'bg-green-600 text-white'
-                      : selectedDate.toISOString().split('T')[0] === day.date
-                      ? 'bg-green-100 text-green-700'
-                      : 'hover:bg-gray-100'
-                  }`}
-                >
-                  <div className="text-sm font-medium">
-                    {new Date(day.date).getDate()}
-                  </div>
-                  {day.schedules.length > 0 && (
-                    <div className="flex justify-center mt-1">
-                      <div className={`w-1.5 h-1.5 rounded-full ${
-                        day.schedules.some(s => s.type === 'pt') ? 'bg-blue-500' :
-                        day.schedules.some(s => s.type === 'personal') ? 'bg-purple-500' :
-                        day.schedules.some(s => s.type === 'workout') ? 'bg-orange-500' :
-                        'bg-gray-400'
-                      }`} />
+                {/* 스케줄 목록 */}
+                <div className="space-y-1">
+                  {daySchedules.slice(0, 3).map((schedule) => (
+                    <div
+                      key={schedule.id}
+                      className={`p-1 rounded text-xs cursor-pointer transition-colors ${
+                        schedule.status === 'completed'
+                          ? 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+                          : schedule.status === 'cancelled'
+                          ? 'bg-red-100 text-red-800 hover:bg-red-200'
+                          : 'bg-green-100 text-green-800 hover:bg-green-200'
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onScheduleClick(schedule)
+                      }}
+                    >
+                      <div className="font-medium truncate">
+                        {schedule.title}
+                      </div>
+                      <div className="text-xs opacity-75 truncate">
+                        트레이너
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* 더 많은 스케줄이 있는 경우 */}
+                  {daySchedules.length > 3 && (
+                    <div className="text-xs text-gray-500 text-center py-1">
+                      +{daySchedules.length - 3}개 더
                     </div>
                   )}
-                </button>
-              ))}
-            </div>
-          </>
-        ) : (
-          /* 리스트 뷰 */
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="mobile-subheading">일정 목록</h3>
-              <select 
-                className="mobile-input text-sm"
-                onChange={(e) => {
-                  const date = new Date()
-                  date.setDate(date.getDate() + parseInt(e.target.value))
-                  setSelectedDate(date)
-                }}
-              >
-                <option value="0">오늘</option>
-                <option value="1">내일</option>
-                <option value="7">일주일 후</option>
-                <option value="30">한달 후</option>
-              </select>
-            </div>
-          </div>
-        )}
-
-        {/* 선택된 날짜의 일정 목록 */}
-        <div className="mt-6">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="mobile-subheading">
-              {selectedDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} 일정
-            </h4>
-            <button 
-              onClick={onAddSchedule}
-              className="mobile-button-small bg-green-600 text-white flex items-center gap-1"
-            >
-              <PlusIcon className="w-4 h-4" />
-              추가
-            </button>
-          </div>
-
-          <div className="mobile-spacing-compact">
-            {getSelectedDateSchedules().length === 0 ? (
-              <div className="text-center py-8">
-                <ClockIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="mobile-body text-gray-500">예정된 일정이 없습니다</p>
-                <button 
-                  onClick={onAddSchedule}
-                  className="mobile-button bg-green-600 text-white mt-4"
-                >
-                  새 일정 추가
-                </button>
-              </div>
-            ) : (
-              getSelectedDateSchedules().map((schedule) => (
-                <div key={schedule.id} className={`mobile-card-compact border-l-4 ${schedule.color === 'blue' ? 'border-blue-500' : schedule.color === 'purple' ? 'border-purple-500' : schedule.color === 'orange' ? 'border-orange-500' : 'border-gray-500'}`}>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          schedule.type === 'pt' ? 'bg-blue-50 text-blue-700' :
-                          schedule.type === 'group' ? 'bg-green-50 text-green-700' :
-                          schedule.type === 'personal' ? 'bg-purple-50 text-purple-700' :
-                          'bg-orange-50 text-orange-700'
-                        }`}>
-                          {SCHEDULE_TYPES[schedule.type].label}
-                        </span>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          schedule.status === 'scheduled' ? 'bg-blue-100 text-blue-800' :
-                          schedule.status === 'in-progress' ? 'bg-yellow-100 text-yellow-800' :
-                          schedule.status === 'completed' ? 'bg-green-100 text-green-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {STATUS_TYPES[schedule.status].label}
-                        </span>
-                      </div>
-                      
-                      <h5 className="mobile-body font-medium text-gray-900 mb-1">
-                        {schedule.title}
-                      </h5>
-                      
-                      <div className="flex items-center gap-4 mobile-caption text-gray-500">
-                        <div className="flex items-center gap-1">
-                          <ClockIcon className="w-4 h-4" />
-                          {schedule.startTime} - {schedule.endTime}
-                        </div>
-                        {schedule.trainerName && (
-                          <div className="flex items-center gap-1">
-                            <UserIcon className="w-4 h-4" />
-                            {schedule.trainerName} 트레이너
-                          </div>
-                        )}
-                      </div>
-                      
-                      {schedule.location && (
-                        <p className="mobile-caption text-gray-500 mt-1">
-                          📍 {schedule.location}
-                        </p>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center gap-2 ml-4">
-                      {schedule.status === 'scheduled' && (
-                        <button className="touch-target p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors">
-                          <CheckCircleIcon className="w-5 h-5" />
-                        </button>
-                      )}
-                      <button className="touch-target p-2 text-gray-400 hover:bg-gray-50 rounded-lg transition-colors">
-                        ⋯
-                      </button>
-                    </div>
-                  </div>
                 </div>
-              ))
-            )}
-          </div>
+              </div>
+            )
+          })}
         </div>
+      </div>
 
-        {/* 빠른 액션 버튼 */}
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <div className="flex justify-center">
-            <button 
-              onClick={onAddSchedule}
-              className="mobile-button bg-green-600 text-white"
-            >
-              새 PT 예약
-            </button>
-          </div>
+      {/* 범례 */}
+      <div className="flex items-center justify-center space-x-6 text-sm">
+        <div className="flex items-center space-x-2">
+          <div className="w-3 h-3 bg-green-100 rounded"></div>
+          <span className="text-gray-600">예정</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <div className="w-3 h-3 bg-blue-100 rounded"></div>
+          <span className="text-gray-600">완료</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <div className="w-3 h-3 bg-red-100 rounded"></div>
+          <span className="text-gray-600">취소</span>
         </div>
       </div>
     </div>
