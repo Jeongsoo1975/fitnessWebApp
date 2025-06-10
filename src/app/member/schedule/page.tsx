@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import MobileNavigation from '@/components/shared/MobileNavigation'
-import ScheduleCalendar from '@/components/schedule/ScheduleCalendar'
+import MemberScheduleCalendar from '@/components/schedule/MemberScheduleCalendar'
 import AddScheduleModal from '@/components/schedule/AddScheduleModal'
 import { useUserRole } from '@/hooks/useAuth'
 
@@ -80,7 +80,7 @@ export default function MemberSchedulePage() {
 
         {/* 메인 컨텐츠 */}
         <div className="py-6">
-          <ScheduleCalendar onAddSchedule={() => setIsAddModalOpen(true)} />
+          <MemberScheduleCalendar onAddSchedule={() => setIsAddModalOpen(true)} />
         </div>
 
         {/* 일정 추가 모달 */}
