@@ -32,6 +32,7 @@ export async function POST(request: NextRequest) {
 
     // 입력값 검증
     if (!memberId) {
+      console.log('Member ID is missing')
       return NextResponse.json(
         { error: 'Member ID is required' },
         { status: 400 }
@@ -39,8 +40,15 @@ export async function POST(request: NextRequest) {
     }
 
     // 회원 존재 여부 확인
+    console.log('Looking for member with ID:', memberId)
+    const allMembers = mockDataStore.getMembers()
+    console.log('All members in store:', allMembers.map(m => ({ id: m.id, email: m.email })))
+    
     const member = mockDataStore.getMemberById(memberId)
+    console.log('Found member:', member)
+    
     if (!member) {
+      console.log('Member not found with ID:', memberId)
       return NextResponse.json(
         { error: 'Member not found' },
         { status: 404 }
