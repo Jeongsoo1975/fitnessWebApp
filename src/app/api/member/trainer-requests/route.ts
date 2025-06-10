@@ -20,18 +20,22 @@ export async function GET(request: NextRequest) {
     }
 
     // 회원이 받은 트레이너 요청 목록 조회
-    // 현재 사용자의 이메일을 memberId로 사용
+    // Clerk ID, 이메일 둘 다로 검색
     const currentUserEmail = currentUser.emailAddresses?.[0]?.emailAddress
-    console.log('Looking for requests for member email:', currentUserEmail)
+    console.log('Looking for requests for:')
+    console.log('- Member ID:', currentUser.id)
+    console.log('- Member email:', currentUserEmail)
     
     // 먼저 모든 요청을 확인해보자
     const allRequests = mockDataStore.getAllRequests()
     console.log('All requests in system:', allRequests)
     
-    // Clerk ID와 이메일 둘 다로 검색
+    // Clerk ID로 검색
     let memberRequests = mockDataStore.getMemberRequests(currentUser.id)
+    
+    // 이메일로도 검색
     if (memberRequests.length === 0 && currentUserEmail) {
-      memberRequests = mockDataStore.getMemberRequests(currentUserEmail)
+      memberRequests = mockDataStore.getMemberRequestsByEmail(currentUserEmail)
     }
     
     console.log('Found requests for current user:', memberRequests)

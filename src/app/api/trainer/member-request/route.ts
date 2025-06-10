@@ -74,9 +74,18 @@ export async function POST(request: NextRequest) {
     }
 
     // 새로운 등록 요청 생성
+    // memberId가 이메일인 경우, 실제 사용자를 찾아서 Clerk ID를 사용해야 함
+    let actualMemberId = memberId
+    
+    // memberId가 이메일 형태라면, 이를 그대로 사용하거나 다른 방식으로 처리
+    if (memberId.includes('@')) {
+      console.log('MemberId is email format, using as is for now:', memberId)
+      actualMemberId = memberId // 이메일을 ID로 사용
+    }
+    
     const newRequest = mockDataStore.addMemberRequest({
       trainerId: currentUser.id,
-      memberId,
+      memberId: actualMemberId, // 실제 회원 ID 또는 이메일
       message: message || '함께 운동하게 되어 기쁩니다!'
     })
 
@@ -87,6 +96,7 @@ export async function POST(request: NextRequest) {
       console.log('- Trainer ID:', newRequest.trainerId)
       console.log('- Member ID:', newRequest.memberId)
       console.log('- Message:', newRequest.message)
+      console.log('- All requests after creation:', mockDataStore.getAllRequests())
     }
 
     return NextResponse.json({

@@ -219,6 +219,14 @@ export const mockDataStore = {
     return mockTrainerMemberRequests.filter(request => request.memberId === memberId)
   },
 
+  // 이메일로도 요청 검색 가능
+  getMemberRequestsByEmail: (email: string) => {
+    return mockTrainerMemberRequests.filter(request => 
+      request.memberId === email || 
+      request.memberId.includes(email)
+    )
+  },
+
   // 디버깅용: 모든 요청 조회
   getAllRequests: () => {
     return [...mockTrainerMemberRequests]
