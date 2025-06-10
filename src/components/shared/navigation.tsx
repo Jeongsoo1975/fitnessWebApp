@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import { UserButton } from '@clerk/nextjs'
 import { useUserRole } from '@/hooks/useAuth'
 import MobileNavigation from './MobileNavigation'
+import NotificationBell from '@/components/notifications/NotificationBell'
 
 interface NavigationItem {
   name: string
@@ -261,6 +262,11 @@ export default function Navigation({ children }: NavigationProps) {
               </h1>
             </div>
             <div className="ml-4 flex items-center md:ml-6 space-x-3">
+              {/* 회원 전용 알림 아이콘 */}
+              {role === 'member' && (
+                <NotificationBell size="md" />
+              )}
+              
               {/* 개발용 역할 전환 버튼 */}
               {process.env.NODE_ENV === 'development' && (
                 <button

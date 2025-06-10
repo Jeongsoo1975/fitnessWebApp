@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import DashboardLayout from '@/components/shared/layout'
 import MemberStats from '@/components/dashboard/member/MemberStats'
 import ProgressOverview from '@/components/dashboard/ProgressOverview'
+import NotificationCard from '@/components/notifications/NotificationCard'
 import { DashboardSkeleton } from '@/components/ui/skeleton'
 
 export const dynamic = 'force-dynamic'
@@ -75,6 +76,11 @@ export default function MemberDashboard() {
       {/* Quick Stats - 모바일 우선 반응형 그리드 */}
       <div className="mb-6 sm:mb-8">
         <MemberStats />
+      </div>
+
+      {/* Notifications Section */}
+      <div className="mb-6 sm:mb-8">
+        <NotificationCard />
       </div>
 
       {/* Progress Overview */}
