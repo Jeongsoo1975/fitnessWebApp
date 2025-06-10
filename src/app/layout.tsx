@@ -86,43 +86,6 @@ export default function RootLayout({
           aria-atomic="true" 
           className="sr-only"
         />
-
-        {/* Enhanced focus indicator styles */}
-        <style jsx global>{`
-          /* Enhanced focus management */
-          :focus-visible {
-            outline: 2px solid #3B82F6;
-            outline-offset: 2px;
-            border-radius: 4px;
-          }
-
-          /* Remove default focus for mouse users */
-          :focus:not(:focus-visible) {
-            outline: none;
-          }
-
-          /* Smooth scrolling with respect for user preferences */
-          @media (prefers-reduced-motion: no-preference) {
-            html {
-              scroll-behavior: smooth;
-            }
-          }
-
-          /* High contrast mode adjustments */
-          @media (prefers-contrast: high) {
-            button, input, select, textarea {
-              border: 2px solid;
-            }
-          }
-
-          /* Forced colors mode support */
-          @media (forced-colors: active) {
-            .mobile-card {
-              forced-color-adjust: auto;
-              border: 1px solid;
-            }
-          }
-        `}</style>
       </body>
     </html>
   )
