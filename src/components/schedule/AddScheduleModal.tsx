@@ -8,18 +8,23 @@ interface AddScheduleModalProps {
   onClose: () => void
   selectedDate?: Date
   onAddSchedule: (schedule: any) => void
+  userRole?: 'trainer' | 'member'
+  members?: Array<{ id: string; firstName: string; lastName: string }>
 }
 
 export default function AddScheduleModal({ 
   isOpen, 
   onClose, 
   selectedDate = new Date(),
-  onAddSchedule 
+  onAddSchedule,
+  userRole = 'member',
+  members = []
 }: AddScheduleModalProps) {
   const [formData, setFormData] = useState({
     title: '',
     type: 'pt' as 'pt' | 'group' | 'personal' | 'break',
     memberName: '',
+    memberId: '', // 추가: 선택된 회원 ID
     startTime: '',
     endTime: '',
     location: '',
@@ -47,6 +52,7 @@ export default function AddScheduleModal({
       title: '',
       type: 'pt',
       memberName: '',
+      memberId: '',
       startTime: '',
       endTime: '',
       location: '',
@@ -111,7 +117,7 @@ export default function AddScheduleModal({
                   { value: 'pt', label: 'PT 세션', color: 'blue' },
                   { value: 'group', label: '그룹 수업', color: 'green' },
                   { value: 'personal', label: '개인 운동', color: 'purple' },
-                  { value: 'break', label: '휴식/점심', color: 'gray' }
+                  ...(userRole === 'trainer' ? [{ value: 'break', label: '휴식/점심', color: 'gray' }] : [])
                 ].map((type) => (
                   <button
                     key={type.value}
@@ -129,6 +135,33 @@ export default function AddScheduleModal({
               </div>
             </div>
 
+            {/* 트레이너용 회원 선택 */}
+            {userRole === 'trainer' && (formData.type === 'pt' || formData.type === 'personal') && (
+              <div className="mobile-form-group">
+                <label className="mobile-form-label">회원 선택 *</label>
+                <select
+                  value={formData.memberId}
+                  onChange={(e) => {
+                    const selectedMember = members.find(m => m.id === e.target.value)
+                    setFormData({ 
+                      ...formData, 
+                      memberId: e.target.value,
+                      memberName: selectedMember ? `${selectedMember.firstName} ${selectedMember.lastName}` : ''
+                    })
+                  }}
+                  className="mobile-input w-full"
+                  required
+                >
+                  <option value="">회원을 선택하세요</option>
+                  {members.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.firstName} {member.lastName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* 제목 */}
             <div className="mobile-form-group">
               <label className="mobile-form-label">제목 *</label>
@@ -142,11 +175,11 @@ export default function AddScheduleModal({
               />
             </div>
 
-            {/* 회원명 (PT, 개인 운동인 경우) */}
-            {(formData.type === 'pt' || formData.type === 'personal') && (
+            {/* 회원명 (회원용 또는 트레이너가 그룹/개인 운동이 아닌 경우) */}
+            {(userRole === 'member' && (formData.type === 'pt' || formData.type === 'personal')) && (
               <div className="mobile-form-group">
                 <label className="mobile-form-label">
-                  {formData.type === 'pt' ? '회원명' : '참여자'}
+                  {formData.type === 'pt' ? '트레이너명' : '참여자'}
                 </label>
                 <input
                   type="text"

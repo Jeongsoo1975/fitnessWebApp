@@ -43,7 +43,7 @@ const trainerNavigation: NavigationItem[] = [
     ),
   },
   {
-    name: '운동 계획',
+    name: '일정 관리',
     href: '/trainer/schedule',
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -2,12 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon } from '@heroicons/react/24/outline'
-import { ClockIcon, UserIcon, CheckCircleIcon } from '@heroicons/react/24/solid'
+import { ClockIcon, UserIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/solid'
+import { useUser } from '@clerk/nextjs'
+import { useUserRole } from '@/hooks/useAuth'
 
 interface ScheduleItem {
   id: string
   title: string
   memberName?: string
+  trainerName?: string
+  memberId?: string
+  trainerId?: string
   memberAvatar?: string
   startTime: string
   endTime: string
@@ -17,6 +22,14 @@ interface ScheduleItem {
   location?: string
   notes?: string
   color: string
+  hasChangeRequest?: boolean // 변경 요청 여부
+}
+
+interface Member {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
 }
 
 interface CalendarDay {
@@ -45,74 +58,76 @@ const STATUS_TYPES = {
 }
 
 export default function ScheduleCalendar({ onAddSchedule }: ScheduleCalendarProps = {}) {
+  const { user } = useUser()
+  const { role } = useUserRole()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar')
   const [schedules, setSchedules] = useState<ScheduleItem[]>([])
+  const [members, setMembers] = useState<Member[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // 샘플 데이터
-  useEffect(() => {
-    const sampleSchedules: ScheduleItem[] = [
-      {
-        id: '1',
-        title: '김민수 회원 PT',
-        memberName: '김민수',
-        startTime: '09:00',
-        endTime: '10:00',
-        date: '2025-06-10',
-        type: 'pt',
-        status: 'completed',
-        location: '운동실 A',
-        color: 'blue'
-      },
-      {
-        id: '2',
-        title: '상체 집중 그룹 수업',
-        startTime: '10:30',
-        endTime: '11:30',
-        date: '2025-06-10',
-        type: 'group',
-        status: 'in-progress',
-        location: '그룹 운동실',
-        color: 'green'
-      },
-      {
-        id: '3',
-        title: '점심 시간',
-        startTime: '12:00',
-        endTime: '13:00',
-        date: '2025-06-10',
-        type: 'break',
-        status: 'scheduled',
-        color: 'gray'
-      },
-      {
-        id: '4',
-        title: '이지은 회원 PT',
-        memberName: '이지은',
-        startTime: '14:00',
-        endTime: '15:00',
-        date: '2025-06-10',
-        type: 'pt',
-        status: 'scheduled',
-        location: '운동실 B',
-        color: 'blue'
-      },
-      {
-        id: '5',
-        title: '박준형 회원 PT',
-        memberName: '박준형',
-        startTime: '16:00',
-        endTime: '17:00',
-        date: '2025-06-11',
-        type: 'pt',
-        status: 'scheduled',
-        location: '운동실 A',
-        color: 'blue'
+  // API 호출 함수들
+  const fetchWorkouts = async () => {
+    try {
+      const response = await fetch('/api/workouts', {
+        headers: {
+          'x-clerk-user-id': user?.id || '',
+          'x-user-role': role || ''
+        }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        // API 데이터를 ScheduleItem 형식으로 변환
+        const transformedSchedules = data.workouts.map((workout: any) => ({
+          id: workout.id,
+          title: workout.title,
+          memberName: workout.member_name,
+          trainerId: workout.trainer_id,
+          memberId: workout.member_id,
+          startTime: '09:00', // 임시값 - 추후 workout 테이블에 시간 필드 추가 필요
+          endTime: '10:00',
+          date: workout.date,
+          type: 'pt',
+          status: workout.status,
+          location: workout.location,
+          notes: workout.description,
+          color: 'blue',
+          hasChangeRequest: false // 추후 변경 요청 확인 로직 추가
+        }))
+        setSchedules(transformedSchedules)
       }
-    ]
-    setSchedules(sampleSchedules)
-  }, [])
+    } catch (error) {
+      console.error('Failed to fetch workouts:', error)
+    }
+  }
+
+  const fetchMembers = async () => {
+    if (role === 'trainer') {
+      try {
+        // 임시 회원 데이터 - 추후 실제 API로 대체
+        const mockMembers = [
+          { id: '1', firstName: '김', lastName: '민수', email: 'kim@example.com' },
+          { id: '2', firstName: '이', lastName: '지은', email: 'lee@example.com' },
+          { id: '3', firstName: '박', lastName: '준형', email: 'park@example.com' }
+        ]
+        setMembers(mockMembers)
+      } catch (error) {
+        console.error('Failed to fetch members:', error)
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (user && role) {
+      setLoading(true)
+      Promise.all([fetchWorkouts(), fetchMembers()]).finally(() => {
+        setLoading(false)
+      })
+    }
+  }, [user, role])
+
+  // 기존 샘플 데이터 로직은 제거하고 위의 API 호출로 대체
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('ko-KR', {
@@ -321,7 +336,7 @@ export default function ScheduleCalendar({ onAddSchedule }: ScheduleCalendarProp
               </div>
             ) : (
               getSelectedDateSchedules().map((schedule) => (
-                <div key={schedule.id} className={`mobile-card-compact border-l-4 border-${schedule.color}-500`}>
+                <div key={schedule.id} className={`mobile-card-compact border-l-4 border-${schedule.color}-500 ${schedule.hasChangeRequest ? 'bg-yellow-50' : ''}`}>
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
@@ -335,6 +350,12 @@ export default function ScheduleCalendar({ onAddSchedule }: ScheduleCalendarProp
                         }`}>
                           {STATUS_TYPES[schedule.status].label}
                         </span>
+                        {schedule.hasChangeRequest && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            <ExclamationTriangleIcon className="w-3 h-3 mr-1" />
+                            변경요청
+                          </span>
+                        )}
                       </div>
                       
                       <h5 className="mobile-body font-medium text-gray-900 mb-1">
