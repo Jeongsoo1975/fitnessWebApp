@@ -20,25 +20,41 @@ export async function GET(request: NextRequest) {
     }
 
     // 회원이 받은 트레이너 요청 목록 조회
-    // Clerk ID, 이메일 둘 다로 검색
+    // 우선순위: 1) Clerk ID, 2) 이메일
     const currentUserEmail = currentUser.emailAddresses?.[0]?.emailAddress
-    console.log('Looking for requests for:')
-    console.log('- Member ID:', currentUser.id)
+    console.log('[member-requests] Looking for requests for:')
+    console.log('- Member Clerk ID:', currentUser.id)
     console.log('- Member email:', currentUserEmail)
     
-    // 먼저 모든 요청을 확인해보자
+    // 먼저 모든 요청을 확인 (디버깅용)
     const allRequests = mockDataStore.getAllRequests()
-    console.log('All requests in system:', allRequests)
+    console.log('[member-requests] All requests in system:', allRequests.length)
     
-    // Clerk ID로 검색
+    // 1. 먼저 Clerk ID로 검색 (최우선)
     let memberRequests = mockDataStore.getMemberRequests(currentUser.id)
+    console.log('[member-requests] Found by Clerk ID:', memberRequests.length)
     
-    // 이메일로도 검색
+    // 2. Clerk ID로 찾지 못한 경우 이메일로 검색
     if (memberRequests.length === 0 && currentUserEmail) {
+      console.log('[member-requests] Trying email search as fallback')
       memberRequests = mockDataStore.getMemberRequestsByEmail(currentUserEmail)
+      console.log('[member-requests] Found by email:', memberRequests.length)
     }
     
-    console.log('Found requests for current user:', memberRequests)
+    // 3. 여전히 찾지 못한 경우 모든 요청에서 이메일 매칭 시도
+    if (memberRequests.length === 0 && currentUserEmail) {
+      console.log('[member-requests] Trying comprehensive email matching')
+      memberRequests = allRequests.filter(request => {
+        // memberId가 현재 사용자의 이메일과 매치되는지 확인
+        return request.memberId === currentUserEmail || 
+               request.memberId === currentUser.id ||
+               (request.memberId.includes('@') && currentUserEmail.includes('@') && 
+                request.memberId.split('@')[0] === currentUserEmail.split('@')[0])
+      })
+      console.log('[member-requests] Found by comprehensive matching:', memberRequests.length)
+    }
+    
+    console.log('[member-requests] Final found requests:', memberRequests)
     
     // 트레이너 정보와 함께 반환하기 위해 요청 데이터 가공
     const requestsWithTrainerInfo = memberRequests.map(request => {
@@ -61,10 +77,13 @@ export async function GET(request: NextRequest) {
 
     // 개발 환경 로깅
     if (process.env.NODE_ENV === 'development') {
-      console.log('Member requests retrieved:')
-      console.log('- Member ID:', currentUser.id)
-      console.log('- Total requests:', requestsWithTrainerInfo.length)
+      console.log('[member-requests] Member requests retrieved successfully:')
+      console.log('- Member Clerk ID:', currentUser.id)
+      console.log('- Member email:', currentUserEmail)
+      console.log('- Total requests found:', requestsWithTrainerInfo.length)
       console.log('- Pending requests:', requestsWithTrainerInfo.filter(r => r.status === 'pending').length)
+      console.log('- Approved requests:', requestsWithTrainerInfo.filter(r => r.status === 'approved').length)
+      console.log('- Request details:', requestsWithTrainerInfo.map(r => ({ id: r.id, status: r.status })))
     }
 
     return NextResponse.json({
@@ -129,23 +148,39 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    // 현재 사용자의 요청들 조회
+    // 현재 사용자의 요청들 조회 (GET과 동일한 로직)
     const currentUserEmail = currentUser.emailAddresses?.[0]?.emailAddress
-    console.log('Looking for user requests:')
-    console.log('- User ID:', currentUser.id)
+    console.log('[member-requests-patch] Looking for user requests:')
+    console.log('- User Clerk ID:', currentUser.id)
     console.log('- User email:', currentUserEmail)
     
-    // 먼저 모든 요청 확인
+    // 모든 요청 확인
     const allRequests = mockDataStore.getAllRequests()
-    console.log('All requests:', allRequests)
+    console.log('[member-requests-patch] Total requests in system:', allRequests.length)
     
+    // 동일한 검색 로직 적용
     let memberRequests = mockDataStore.getMemberRequests(currentUser.id)
+    console.log('[member-requests-patch] Found by Clerk ID:', memberRequests.length)
+    
     if (memberRequests.length === 0 && currentUserEmail) {
+      console.log('[member-requests-patch] Trying email search as fallback')
       memberRequests = mockDataStore.getMemberRequestsByEmail(currentUserEmail)
+      console.log('[member-requests-patch] Found by email:', memberRequests.length)
     }
     
-    console.log('User requests:', memberRequests)
-    console.log('Looking for request ID:', requestId)
+    if (memberRequests.length === 0 && currentUserEmail) {
+      console.log('[member-requests-patch] Trying comprehensive email matching')
+      memberRequests = allRequests.filter(request => {
+        return request.memberId === currentUserEmail || 
+               request.memberId === currentUser.id ||
+               (request.memberId.includes('@') && currentUserEmail.includes('@') && 
+                request.memberId.split('@')[0] === currentUserEmail.split('@')[0])
+      })
+      console.log('[member-requests-patch] Found by comprehensive matching:', memberRequests.length)
+    }
+    
+    console.log('[member-requests-patch] Final user requests:', memberRequests)
+    console.log('[member-requests-patch] Looking for request ID:', requestId)
     
     // 요청이 현재 회원에게 온 것인지 확인
     const targetRequest = memberRequests.find(req => req.id === requestId)
@@ -179,11 +214,13 @@ export async function PATCH(request: NextRequest) {
 
     // 개발 환경 로깅
     if (process.env.NODE_ENV === 'development') {
-      console.log('Request status updated:')
+      console.log('[member-requests-patch] Request status updated successfully:')
       console.log('- Request ID:', requestId)
       console.log('- New status:', status)
-      console.log('- Member ID:', currentUser.id)
+      console.log('- Member Clerk ID:', currentUser.id)
+      console.log('- Member email:', currentUserEmail)
       console.log('- Trainer ID:', updatedRequest.trainerId)
+      console.log('- Updated at:', updatedRequest.updatedAt)
     }
 
     return NextResponse.json({
