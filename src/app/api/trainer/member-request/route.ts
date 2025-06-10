@@ -2,17 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireRole, getCurrentUser } from '@/lib/auth'
 import { mockDataStore } from '@/lib/mockData'
 
-export const runtime = 'edge'
+// export const runtime = 'edge' // Clerk 인증과 호환성을 위해 Node.js runtime 사용
 
 // POST /api/trainer/member-request - 회원 등록 요청 보내기
 export async function POST(request: NextRequest) {
+  console.log('POST /api/trainer/member-request - Request received')
+  
   try {
     // 트레이너 권한 체크
     await requireRole('trainer')
+    console.log('Role check passed: trainer')
     
     // 현재 사용자 정보 가져오기
     const currentUser = await getCurrentUser()
+    console.log('Current user:', currentUser?.id)
+    
     if (!currentUser) {
+      console.log('No current user found')
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -21,6 +27,7 @@ export async function POST(request: NextRequest) {
 
     // 요청 본문에서 데이터 추출
     const body = await request.json()
+    console.log('Request body:', body)
     const { memberId, message } = body
 
     // 입력값 검증

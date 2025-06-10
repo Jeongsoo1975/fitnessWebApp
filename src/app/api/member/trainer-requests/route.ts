@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireRole, getCurrentUser } from '@/lib/auth'
 import { mockDataStore } from '@/lib/mockData'
 
-export const runtime = 'edge'
+// export const runtime = 'edge' // Clerk 인증과 호환성을 위해 Node.js runtime 사용
 
 // GET /api/member/trainer-requests - 받은 트레이너 요청 목록 조회
 export async function GET(request: NextRequest) {
