@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRole, getCurrentUser } from '@/lib/auth'
 import { mockDataStore } from '@/lib/mockData'
+import { clerkClient } from '@clerk/nextjs/server'
 
 // export const runtime = 'edge' // Clerk Client는 Node.js runtime에서만 작동
 
@@ -31,49 +32,62 @@ export async function GET(request: NextRequest) {
     let searchResults = []
 
     try {
-      // 개발 환경에서는 mockDataStore에서만 검색
-      // 실제 환경에서는 데이터베이스 연동 필요
-      searchResults = mockDataStore.searchMembers(query)
-      
-      // 새로 가입한 사용자의 이메일을 임시로 추가 (테스트용)
-      if (query && query.includes('@') && searchResults.length === 0) {
-        // 검색한 이메일이 기존 회원에 없으면 새로 추가
-        const existingMember = mockDataStore.getMembers().find(m => m.email.toLowerCase() === query.toLowerCase())
-        
-        if (!existingMember) {
-          const newMember = mockDataStore.addMember({
-            email: query,
-            firstName: '신규',
-            lastName: '회원'
+      // Clerk에서 실제 사용자 검색
+      if (query.length > 0) {
+        // 이메일로 검색
+        if (query.includes('@')) {
+          const users = await clerkClient.users.getUserList({
+            emailAddress: [query],
+            limit: 10
           })
-          searchResults = [newMember]
+          
+          searchResults = users.data.map(user => ({
+            id: user.id, // Clerk 사용자 ID 사용
+            firstName: user.firstName || '사용자',
+            lastName: user.lastName || '',
+            email: user.emailAddresses[0]?.emailAddress || '',
+            isRegistered: false // 실제로는 DB에서 확인해야 함
+          }))
+        } else {
+          // 이름으로 검색
+          const users = await clerkClient.users.getUserList({
+            query: query,
+            limit: 10
+          })
+          
+          searchResults = users.data
+            .filter(user => {
+              const fullName = `${user.firstName || ''} ${user.lastName || ''}`.toLowerCase()
+              return fullName.includes(query.toLowerCase())
+            })
+            .map(user => ({
+              id: user.id,
+              firstName: user.firstName || '사용자',
+              lastName: user.lastName || '',
+              email: user.emailAddresses[0]?.emailAddress || '',
+              isRegistered: false
+            }))
         }
       }
       
-    } catch (error) {
-      console.error('Search error:', error)
-      searchResults = mockDataStore.searchMembers(query)
+      // 현재 사용자 자신은 제외
+      searchResults = searchResults.filter(user => user.id !== currentUser.id)
+      
+    } catch (clerkError) {
+      console.error('Clerk search error:', clerkError)
+      searchResults = []
     }
-    
-    // 이미 등록된 회원 필터링 (isRegistered가 true인 회원 제외)
-    const availableMembers = searchResults.filter(member => !member.isRegistered)
 
     // 개발 환경 로깅
     if (process.env.NODE_ENV === 'development') {
       console.log('Total results:', searchResults.length)
-      console.log('Available (unregistered) members:', availableMembers.length)
+      console.log('Available members:', searchResults.length)
     }
 
     return NextResponse.json({
       success: true,
-      members: availableMembers.map(member => ({
-        id: member.id,
-        firstName: member.firstName,
-        lastName: member.lastName,
-        email: member.email,
-        isRegistered: member.isRegistered
-      })),
-      count: availableMembers.length
+      members: searchResults,
+      count: searchResults.length
     })
 
   } catch (error) {

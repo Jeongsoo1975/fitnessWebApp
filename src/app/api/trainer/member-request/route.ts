@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRole, getCurrentUser } from '@/lib/auth'
 import { mockDataStore } from '@/lib/mockData'
+import { clerkClient } from '@clerk/nextjs/server'
 
 // export const runtime = 'edge' // Clerk 인증과 호환성을 위해 Node.js runtime 사용
 
@@ -39,34 +40,32 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 회원 존재 여부 확인
-    console.log('Looking for member with ID:', memberId)
-    const allMembers = mockDataStore.getMembers()
-    console.log('All members in store:', allMembers.map(m => ({ id: m.id, email: m.email })))
+    // 회원 존재 여부 확인 (Clerk에서 직접 확인)
+    console.log('Looking for member with Clerk ID:', memberId)
     
-    let member = mockDataStore.getMemberById(memberId)
-    console.log('Found member:', member)
-    
-    // 만약 회원이 없으면 전달받은 정보로 재생성
-    if (!member) {
-      console.log('Member not found, recreating with provided info')
-      
-      if (memberEmail && memberFirstName && memberLastName) {
-        member = mockDataStore.addMember({
-          email: memberEmail,
-          firstName: memberFirstName,
-          lastName: memberLastName
-        })
-        // 생성된 회원의 ID를 요청된 ID로 강제 변경
-        member.id = memberId
-        console.log('Recreated member:', member)
-      } else {
-        console.log('Member not found and insufficient info to recreate, ID:', memberId)
-        return NextResponse.json(
-          { error: 'Member not found' },
-          { status: 404 }
-        )
+    let member = null
+    try {
+      const clerkUser = await clerkClient.users.getUser(memberId)
+      if (clerkUser) {
+        member = {
+          id: clerkUser.id,
+          firstName: clerkUser.firstName || memberFirstName || '사용자',
+          lastName: clerkUser.lastName || memberLastName || '',
+          email: clerkUser.emailAddresses[0]?.emailAddress || memberEmail || '',
+          isRegistered: false
+        }
+        console.log('Found Clerk user:', member)
       }
+    } catch (clerkError) {
+      console.error('Clerk user lookup failed:', clerkError)
+    }
+    
+    if (!member) {
+      console.log('Member not found with Clerk ID:', memberId)
+      return NextResponse.json(
+        { error: 'Member not found' },
+        { status: 404 }
+      )
     }
 
     // 이미 등록된 회원인지 확인

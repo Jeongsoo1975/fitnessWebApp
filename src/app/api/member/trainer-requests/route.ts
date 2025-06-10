@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRole, getCurrentUser } from '@/lib/auth'
 import { mockDataStore } from '@/lib/mockData'
+import { clerkClient } from '@clerk/nextjs/server'
 
 // export const runtime = 'edge' // Clerk 인증과 호환성을 위해 Node.js runtime 사용
 
@@ -30,24 +31,38 @@ export async function GET(request: NextRequest) {
     console.log('Found requests for current user:', memberRequests)
     
     // 트레이너 정보와 함께 반환하기 위해 요청 데이터 가공
-    const requestsWithTrainerInfo = memberRequests.map(request => {
-      // 실제 환경에서는 트레이너 정보를 데이터베이스에서 조회해야 함
-      // 현재는 mock 데이터로 처리
-      const trainerInfo = {
-        id: request.trainerId,
-        name: `트레이너 ${request.trainerId}`,
-        email: `trainer${request.trainerId}@example.com`
-      }
-      
-      return {
-        id: request.id,
-        trainer: trainerInfo,
-        message: request.message,
-        status: request.status,
-        createdAt: request.createdAt,
-        updatedAt: request.updatedAt
-      }
-    })
+    const requestsWithTrainerInfo = await Promise.all(
+      memberRequests.map(async (request) => {
+        // 실제 트레이너 정보를 Clerk에서 조회
+        let trainerInfo = {
+          id: request.trainerId,
+          name: `트레이너 ${request.trainerId}`,
+          email: `trainer${request.trainerId}@example.com`
+        }
+        
+        try {
+          const trainerUser = await clerkClient.users.getUser(request.trainerId)
+          if (trainerUser) {
+            trainerInfo = {
+              id: trainerUser.id,
+              name: `${trainerUser.firstName || '트레이너'} ${trainerUser.lastName || ''}`.trim(),
+              email: trainerUser.emailAddresses[0]?.emailAddress || ''
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch trainer info:', error)
+        }
+        
+        return {
+          id: request.id,
+          trainer: trainerInfo,
+          message: request.message,
+          status: request.status,
+          createdAt: request.createdAt,
+          updatedAt: request.updatedAt
+        }
+      })
+    )
 
     // 개발 환경 로깅
     if (process.env.NODE_ENV === 'development') {
