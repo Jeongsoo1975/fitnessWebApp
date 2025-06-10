@@ -92,6 +92,8 @@ export async function GET(request: NextRequest) {
 
 // PATCH /api/member/trainer-requests - 트레이너 요청 승인/거절
 export async function PATCH(request: NextRequest) {
+  console.log('PATCH /api/member/trainer-requests - Request received')
+  
   try {
     // 회원 권한 체크
     await requireRole('member')
@@ -107,10 +109,12 @@ export async function PATCH(request: NextRequest) {
 
     // 요청 본문에서 데이터 추출
     const body = await request.json()
+    console.log('Request body:', body)
     const { requestId, status } = body
 
     // 입력값 검증
     if (!requestId) {
+      console.log('Request ID is missing')
       return NextResponse.json(
         { error: 'Request ID is required' },
         { status: 400 }
@@ -118,17 +122,37 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (!status || !['approved', 'rejected'].includes(status)) {
+      console.log('Invalid status:', status)
       return NextResponse.json(
         { error: 'Status must be either "approved" or "rejected"' },
         { status: 400 }
       )
     }
 
+    // 현재 사용자의 요청들 조회
+    const currentUserEmail = currentUser.emailAddresses?.[0]?.emailAddress
+    console.log('Looking for user requests:')
+    console.log('- User ID:', currentUser.id)
+    console.log('- User email:', currentUserEmail)
+    
+    // 먼저 모든 요청 확인
+    const allRequests = mockDataStore.getAllRequests()
+    console.log('All requests:', allRequests)
+    
+    let memberRequests = mockDataStore.getMemberRequests(currentUser.id)
+    if (memberRequests.length === 0 && currentUserEmail) {
+      memberRequests = mockDataStore.getMemberRequestsByEmail(currentUserEmail)
+    }
+    
+    console.log('User requests:', memberRequests)
+    console.log('Looking for request ID:', requestId)
+    
     // 요청이 현재 회원에게 온 것인지 확인
-    const memberRequests = mockDataStore.getMemberRequests(currentUser.id)
     const targetRequest = memberRequests.find(req => req.id === requestId)
+    console.log('Found target request:', targetRequest)
     
     if (!targetRequest) {
+      console.log('Request not found or not authorized')
       return NextResponse.json(
         { error: 'Request not found or not authorized to modify this request' },
         { status: 404 }
