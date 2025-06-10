@@ -30,11 +30,11 @@ body {
 @layer components {
   /* Touch Target Standards - 최소 44px (Apple) / 48px (Google) */
   .touch-target {
-    @apply min-h-[44px] min-w-[44px] touch-manipulation;
+    @apply min-h-[44px] min-w-[44px] touch-manipulation tap-highlight-none;
   }
   
   .touch-target-large {
-    @apply min-h-[48px] min-w-[48px] touch-manipulation;
+    @apply min-h-[48px] min-w-[48px] touch-manipulation tap-highlight-none;
   }
 
   /* Mobile Card Components */
@@ -169,5 +169,193 @@ body {
   
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Performance Optimizations */
+@layer utilities {
+  /* Reduce animations for users who prefer reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Optimize touch interactions */
+  .touch-optimized {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Improve scroll performance */
+  .scroll-optimized {
+    -webkit-overflow-scrolling: touch;
+    will-change: scroll-position;
+  }
+
+  /* GPU acceleration for animations */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  /* Content visibility optimization */
+  .content-visibility-auto {
+    content-visibility: auto;
+  }
+
+  /* Font loading optimization */
+  .font-display-swap {
+    font-display: swap;
+  }
+}
+
+/* Accessibility Improvements */
+@layer utilities {
+  /* Screen reader only content */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Focus visible improvements */
+  .focus-visible-enhanced:focus-visible {
+    outline: 2px solid #3B82F6;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .high-contrast-border {
+      border: 2px solid;
+    }
+    
+    .high-contrast-text {
+      font-weight: 600;
+    }
+  }
+
+  /* Forced colors mode (Windows High Contrast) */
+  @media (forced-colors: active) {
+    .forced-colors-auto {
+      forced-color-adjust: auto;
+    }
+  }
+
+  /* Skip links for keyboard navigation */
+  .skip-link {
+    position: absolute;
+    top: -40px;
+    left: 6px;
+    background: #000;
+    color: #fff;
+    padding: 8px;
+    text-decoration: none;
+    z-index: 9999;
+    border-radius: 4px;
+  }
+
+  .skip-link:focus {
+    top: 6px;
+  }
+
+  /* Color contrast enhancements */
+  .wcag-aa-contrast {
+    color: #1f2937; /* 4.5:1 contrast ratio on white */
+  }
+
+  .wcag-aaa-contrast {
+    color: #111827; /* 7:1 contrast ratio on white */
+  }
+}
+
+/* Touch and Mobile Optimizations */
+@layer utilities {
+  /* Remove iOS button styling */
+  .ios-button-reset {
+    -webkit-appearance: none;
+    border-radius: 0;
+  }
+
+  /* Prevent zoom on input focus (iOS) */
+  .prevent-zoom {
+    font-size: 16px;
+  }
+
+  /* Better touch targets for small devices */
+  @media (max-width: 480px) {
+    .mobile-touch-target {
+      min-height: 48px;
+      min-width: 48px;
+    }
+  }
+
+  /* Thumb-friendly positioning */
+  .thumb-zone {
+    margin-bottom: 120px; /* Account for thumb reach */
+  }
+
+  /* Smooth kinetic scrolling */
+  .kinetic-scroll {
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .print-hidden {
+    display: none !important;
+  }
+
+  .print-visible {
+    display: block !important;
+  }
+
+  /* Optimize for printing */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt;
+    line-height: 1.4;
+  }
+
+  /* Remove shadows and gradients for print */
+  * {
+    box-shadow: none !important;
+    background-image: none !important;
+  }
+
+  /* Ensure links are visible */
+  a[href]:after {
+    content: " (" attr(href) ")";
+    font-size: 10pt;
+    color: #666;
+  }
+
+  /* Page break helpers */
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  .page-break-inside-avoid {
+    page-break-inside: avoid;
   }
 }
