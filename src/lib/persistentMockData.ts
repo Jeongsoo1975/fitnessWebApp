@@ -1,4 +1,36 @@
-: {
+ any = {}
+    data.trainerMemberRequests.forEach(request => {
+      if (!trainerStats[request.trainerId]) {
+        trainerStats[request.trainerId] = { pending: 0, approved: 0, rejected: 0 }
+      }
+      trainerStats[request.trainerId][request.status]++
+    })
+
+    validationResults.summary.trainerStats = trainerStats
+    validationResults.summary.uniqueTrainers = Object.keys(trainerStats).length
+
+    if (validationResults.issues.length === 0) {
+      dataLogger.info('Data consistency validation passed', validationResults.summary)
+    } else {
+      dataLogger.warn('Data consistency issues found', {
+        issueCount: validationResults.issues.length,
+        issues: validationResults.issues,
+        summary: validationResults.summary
+      })
+    }
+
+    return validationResults
+  }
+
+  generateSystemReport = () => {
+    const consistencyCheck = this.validateDataConsistency()
+    const data = this.ensureData()
+    
+    const report = {
+      timestamp: new Date().toISOString(),
+      systemHealth: consistencyCheck.issues.length === 0 ? 'healthy' : 'issues_detected',
+      statistics: {
+        requests: {
           total: data.trainerMemberRequests.length,
           pending: data.trainerMemberRequests.filter(r => r.status === 'pending').length,
           approved: data.trainerMemberRequests.filter(r => r.status === 'approved').length,
