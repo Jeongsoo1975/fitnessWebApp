@@ -504,6 +504,106 @@ export const mockDataStore = {
     return unreadCount
   },
 
+    // 4. 중복 요청 확인
+    const duplicateRequests = []
+    for (let i = 0; i < mockTrainerMemberRequests.length; i++) {
+      for (let j = i + 1; j < mockTrainerMemberRequests.length; j++) {
+        const req1 = mockTrainerMemberRequests[i]
+        const req2 = mockTrainerMemberRequests[j]
+        if (req1.trainerId === req2.trainerId && req1.memberId === req2.memberId && req1.status === 'pending' && req2.status === 'pending') {
+          duplicateRequests.push({ req1: req1.id, req2: req2.id })
+        }
+      }
+    }
+
+    if (duplicateRequests.length > 0) {
+      validationResults.issues.push(
+        `중복 pending 요청 발견: ${duplicateRequests.length}쌍`
+      )
+    }
+
+    // 5. 트레이너별 요청 통계
+    const trainerStats = {}
+    mockTrainerMemberRequests.forEach(request => {
+      if (!trainerStats[request.trainerId]) {
+        trainerStats[request.trainerId] = { pending: 0, approved: 0, rejected: 0 }
+      }
+      trainerStats[request.trainerId][request.status]++
+    })
+
+    validationResults.summary.trainerStats = trainerStats
+    validationResults.summary.uniqueTrainers = Object.keys(trainerStats).length
+
+    // 검증 결과 로깅
+    if (validationResults.issues.length === 0) {
+      dataLogger.info('Data consistency validation passed', validationResults.summary)
+    } else {
+      dataLogger.warn('Data consistency issues found', {
+        issueCount: validationResults.issues.length,
+        issues: validationResults.issues,
+        summary: validationResults.summary
+      })
+    }
+
+    return validationResults
+  },
+
+  /**
+   * 시스템 상태 리포트 생성
+   */
+  generateSystemReport: () => {
+    const consistencyCheck = mockDataStore.validateDataConsistency()
+    
+    const report = {
+      timestamp: new Date().toISOString(),
+      systemHealth: consistencyCheck.issues.length === 0 ? 'healthy' : 'issues_detected',
+      statistics: {
+        requests: {
+          total: mockTrainerMemberRequests.length,
+          pending: mockTrainerMemberRequests.filter(r => r.status === 'pending').length,
+          approved: mockTrainerMemberRequests.filter(r => r.status === 'approved').length,
+          rejected: mockTrainerMemberRequests.filter(r => r.status === 'rejected').length
+        },
+        notifications: {
+          total: mockTrainerNotifications.length,
+          unread: mockTrainerNotifications.filter(n => !n.isRead).length,
+          byType: mockTrainerNotifications.reduce((acc, n) => {
+            acc[n.type] = (acc[n.type] || 0) + 1
+            return acc
+          }, {})
+        },
+        members: {
+          total: mockMembers.length,
+          registered: mockMembers.filter(m => m.isRegistered).length,
+          unregistered: mockMembers.filter(m => !m.isRegistered).length
+        }
+      },
+      consistencyCheck,
+      recommendations: []
+    }
+
+    // 추천 사항 생성
+    if (consistencyCheck.issues.length > 0) {
+      report.recommendations.push('데이터 일관성 문제를 해결하세요')
+    }
+
+    if (report.statistics.requests.pending > 10) {
+      report.recommendations.push('대기 중인 요청이 많습니다. 처리를 검토하세요')
+    }
+
+    if (report.statistics.notifications.unread > 20) {
+      report.recommendations.push('읽지 않은 알림이 많습니다. 정리를 권장합니다')
+    }
+
+    dataLogger.info('System report generated', {
+      systemHealth: report.systemHealth,
+      totalRequests: report.statistics.requests.total,
+      issueCount: consistencyCheck.issues.length
+    })
+
+    return report
+  },
+
   // 트레이너의 모든 알림을 읽음 처리
   markAllTrainerNotificationsAsRead: (trainerId: string) => {
     let updatedCount = 0
@@ -517,7 +617,11 @@ export const mockDataStore = {
         updatedCount++
       }
     })
-    console.log('[markAllTrainerNotificationsAsRead] Marked', updatedCount, 'notifications as read')
+    dataLogger.info('Marked all trainer notifications as read', { 
+      trainerId, 
+      updatedCount 
+    })
     return updatedCount
   }
+}
 }

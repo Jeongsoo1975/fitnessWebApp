@@ -1,18 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRole, getCurrentUser, searchValidUsers } from '@/lib/auth'
 import { mockDataStore } from '@/lib/mockData'
+import { createApiLogger } from '@/lib/logger'
 
 // Clerk Backend SDK를 사용하여 실제 사용자 검증 수행
+
+// API별 로거 생성
+const apiLogger = createApiLogger('trainer-member-search')
 
 // GET /api/trainer/member-search - 회원 검색 (실제 사용자 검증 포함)
 export async function GET(request: NextRequest) {
   try {
     // 트레이너 권한 체크
     await requireRole('trainer')
+    apiLogger.info('Trainer role authentication successful for member search')
     
     // 현재 사용자 정보 가져오기
     const currentUser = await getCurrentUser()
     if (!currentUser) {
+      apiLogger.error('Unauthorized - no current user found')
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -23,10 +29,11 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url)
     const query = url.searchParams.get('q') || ''
 
-    // 개발 환경 로깅
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Member search - Query:', query)
-    }
+    apiLogger.info('Member search initiated', { 
+      trainerId: currentUser.id,
+      query: query.length > 0 ? '***' : 'empty', // 쿼리 마스킹
+      queryLength: query.length
+    })
 
     let searchResults = []
     let message = ''
@@ -34,13 +41,13 @@ export async function GET(request: NextRequest) {
     try {
       // 이메일로 검색하는 경우, 실제 Clerk 사용자 검증 사용
       if (query.includes('@')) {
-        console.log('[member-search] Email search initiated for:', query)
+        apiLogger.debug('Email search initiated')
         
         // 현재 사용자의 이메일과 다른 경우에만 검색 진행
         const currentUserEmail = currentUser.emailAddresses?.[0]?.emailAddress
         
         if (query === currentUserEmail) {
-          console.log('[member-search] Cannot search for own email address')
+          apiLogger.warn('Attempt to search for own email address')
           message = '자신의 이메일로는 검색할 수 없습니다.'
         } else {
           // 실제 Clerk 사용자 검증
@@ -55,37 +62,47 @@ export async function GET(request: NextRequest) {
               email: user.email,
               isRegistered: false // 트레이너와 연결되지 않은 상태
             }]
-            console.log('[member-search] Valid user found:', user.id)
+            apiLogger.info('Valid user found in email search', { 
+              foundUserId: user.id,
+              hasFirstName: !!user.firstName
+            })
             message = '검색 결과를 찾았습니다.'
           } else {
-            console.log('[member-search] No valid user found for email:', query)
+            apiLogger.warn('No valid user found for email search')
             message = '해당 이메일로 등록된 사용자를 찾을 수 없습니다. 올바른 이메일 주소인지 확인해주세요.'
           }
         }
       } else {
         // 이름으로 검색하는 경우 기존 mockData 활용
-        console.log('[member-search] Name search initiated for:', query)
+        apiLogger.debug('Name search initiated')
         const mockResults = mockDataStore.searchMembers(query)
         searchResults = mockResults.filter(member => !member.isRegistered)
         
         if (searchResults.length > 0) {
           message = `${searchResults.length}명의 검색 결과를 찾았습니다.`
+          apiLogger.info('Name search results found', { 
+            totalResults: searchResults.length,
+            unregisteredCount: searchResults.length
+          })
         } else {
           message = '검색 결과를 찾을 수 없습니다.'
+          apiLogger.info('No name search results found')
         }
       }
       
     } catch (error) {
-      console.error('[member-search] Search error:', error)
+      apiLogger.error('Search error occurred', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      })
       searchResults = []
       message = '검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
     }
 
-    // 개발 환경 로깅
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[member-search] Search completed - Total results:', searchResults.length)
-      console.log('[member-search] Message:', message)
-    }
+    apiLogger.info('Search completed', {
+      totalResults: searchResults.length,
+      hasMessage: !!message
+    })
 
     return NextResponse.json({
       success: true,
@@ -95,7 +112,10 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('[member-search] Error searching members:', error)
+    apiLogger.error('Error searching members', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
     
     if (error instanceof Error && error.message.includes('unauthorized')) {
       return NextResponse.json(
