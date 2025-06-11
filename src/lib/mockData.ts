@@ -51,6 +51,18 @@ interface MockTrainerNotification {
   updatedAt?: string
 }
 
+interface MockMemberNotification {
+  id: string
+  memberId: string
+  type: 'trainer_request' | 'request_approved' | 'request_rejected' | 'session_scheduled' | 'other'
+  message: string
+  trainerId?: string
+  trainerName?: string
+  isRead: boolean
+  createdAt: string
+  updatedAt?: string
+}
+
 // 전역 변수로 메모리에 저장 (개발 환경에서만 사용)
 let mockSchedules: MockSchedule[] = [
   {
@@ -127,6 +139,7 @@ let mockMembers: MockMemberProfile[] = [
 
 let mockTrainerMemberRequests: MockTrainerMemberRequest[] = []
 let mockTrainerNotifications: MockTrainerNotification[] = []
+let mockMemberNotifications: MockMemberNotification[] = []
 
 export const mockDataStore = {
   // 스케줄 관련
@@ -286,6 +299,26 @@ export const mockDataStore = {
       status: newRequest.status,
       hasMessage: !!newRequest.message,
       totalRequestsInSystem: mockTrainerMemberRequests.length
+    })
+    
+    // 회원에게 트레이너 요청 알림 생성
+    const trainerName = `트레이너 ${newRequest.trainerId}`
+    const memberNotification: MockMemberNotification = {
+      id: (Date.now() + 1).toString(), // ID 충돌 방지를 위해 +1
+      memberId: newRequest.memberId,
+      type: 'trainer_request',
+      message: `${trainerName}님이 PT 등록을 요청했습니다.`,
+      trainerId: newRequest.trainerId,
+      trainerName: trainerName,
+      isRead: false,
+      createdAt: new Date().toISOString()
+    }
+    
+    mockMemberNotifications.push(memberNotification)
+    dataLogger.info('Created member notification for trainer request', { 
+      notificationId: memberNotification.id,
+      memberId: newRequest.memberId,
+      trainerId: newRequest.trainerId
     })
     
     return newRequest
@@ -476,6 +509,71 @@ export const mockDataStore = {
     })
     dataLogger.info('Marked all notifications as read', { 
       trainerId, 
+      updatedCount 
+    })
+    return updatedCount
+  },
+
+  // 회원 알림 관련
+  addMemberNotification: (notification: Omit<MockMemberNotification, 'id' | 'createdAt'>) => {
+    const newNotification: MockMemberNotification = {
+      ...notification,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString()
+    }
+    mockMemberNotifications.push(newNotification)
+    dataLogger.info('Added member notification', { notificationId: newNotification.id })
+    return newNotification
+  },
+
+  getMemberNotifications: (memberId: string) => {
+    const notifications = mockMemberNotifications.filter(notification => 
+      notification.memberId === memberId
+    ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    
+    dataLogger.debug('Retrieved member notifications', { 
+      memberId, 
+      count: notifications.length 
+    })
+    return notifications
+  },
+
+  markMemberNotificationAsRead: (id: string) => {
+    const index = mockMemberNotifications.findIndex(notification => notification.id === id)
+    if (index !== -1) {
+      mockMemberNotifications[index] = {
+        ...mockMemberNotifications[index],
+        isRead: true,
+        updatedAt: new Date().toISOString()
+      }
+      dataLogger.info('Marked member notification as read', { notificationId: id })
+      return mockMemberNotifications[index]
+    }
+    return null
+  },
+
+  getUnreadMemberNotificationsCount: (memberId: string) => {
+    const unreadCount = mockMemberNotifications.filter(notification => 
+      notification.memberId === memberId && !notification.isRead
+    ).length
+    dataLogger.debug('Unread member notifications count', { memberId, unreadCount })
+    return unreadCount
+  },
+
+  markAllMemberNotificationsAsRead: (memberId: string) => {
+    let updatedCount = 0
+    mockMemberNotifications.forEach((notification, index) => {
+      if (notification.memberId === memberId && !notification.isRead) {
+        mockMemberNotifications[index] = {
+          ...notification,
+          isRead: true,
+          updatedAt: new Date().toISOString()
+        }
+        updatedCount++
+      }
+    })
+    dataLogger.info('Marked all member notifications as read', { 
+      memberId, 
       updatedCount 
     })
     return updatedCount
