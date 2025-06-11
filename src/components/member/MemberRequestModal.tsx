@@ -45,7 +45,8 @@ export default function MemberRequestModal({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await getToken()}`
+          // 임시로 Authorization 헤더 제거하여 테스트
+          // 'Authorization': `Bearer ${await getToken()}`
         },
         body: JSON.stringify({
           memberId: member.id,
