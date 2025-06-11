@@ -1,281 +1,3 @@
-members.find(m => m.id === request.memberId)
-        return member ? { ...member, requestId: request.id } : null
-      }
-    }).filter(Boolean)
-    
-    return members
-  }
-
-  // === 트레이너 알림 관련 메서드 ===
-  addTrainerNotification = async (notification: Omit<MockTrainerNotification, 'id' | 'createdAt'>) => {
-    await this.ensureInitialized()
-    
-    const data = this.ensureData()
-    const newNotification: MockTrainerNotification = {
-      ...notification,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString()
-    }
-    
-    data.trainerNotifications.push(newNotification)
-    await this.saveData()
-    
-    dataLogger.info('Added trainer notification', { notificationId: newNotification.id })
-    return newNotification
-  }
-
-  getTrainerNotifications = (trainerId: string) => {
-    const data = this.ensureData()
-    const notifications = data.trainerNotifications.filter(notification => 
-      notification.trainerId === trainerId
-    ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    
-    dataLogger.debug('Retrieved trainer notifications', { 
-      trainerId, 
-      count: notifications.length 
-    })
-    return notifications
-  }
-
-  markTrainerNotificationAsRead = async (id: string) => {
-    await this.ensureInitialized()
-    
-    const data = this.ensureData()
-    const index = data.trainerNotifications.findIndex(notification => notification.id === id)
-    if (index !== -1) {
-      data.trainerNotifications[index] = {
-        ...data.trainerNotifications[index],
-        isRead: true,
-        updatedAt: new Date().toISOString()
-      }
-      
-      await this.saveData()
-      dataLogger.info('Marked notification as read', { notificationId: id })
-      return data.trainerNotifications[index]
-    }
-    return null
-  }
-
-  getUnreadTrainerNotificationsCount = (trainerId: string) => {
-    const data = this.ensureData()
-    const unreadCount = data.trainerNotifications.filter(notification => 
-      notification.trainerId === trainerId && !notification.isRead
-    ).length
-    dataLogger.debug('Unread notifications count', { trainerId, unreadCount })
-    return unreadCount
-  }
-
-  markAllTrainerNotificationsAsRead = async (trainerId: string) => {
-    await this.ensureInitialized()
-    
-    const data = this.ensureData()
-    let updatedCount = 0
-    data.trainerNotifications.forEach((notification, index) => {
-      if (notification.trainerId === trainerId && !notification.isRead) {
-        data.trainerNotifications[index] = {
-          ...notification,
-          isRead: true,
-          updatedAt: new Date().toISOString()
-        }
-        updatedCount++
-      }
-    })
-    
-    if (updatedCount > 0) {
-      await this.saveData()
-    }
-    
-    dataLogger.info('Marked all notifications as read', { 
-      trainerId, 
-      updatedCount 
-    })
-    return updatedCount
-  }
-
-  // === 회원 알림 관련 메서드 ===
-  addMemberNotification = async (notification: Omit<MockMemberNotification, 'id' | 'createdAt'>) => {
-    await this.ensureInitialized()
-    
-    const data = this.ensureData()
-    const newNotification: MockMemberNotification = {
-      ...notification,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString()
-    }
-    
-    data.memberNotifications.push(newNotification)
-    await this.saveData()
-    
-    dataLogger.info('Added member notification', { notificationId: newNotification.id })
-    return newNotification
-  }
-
-  getMemberNotifications = (memberId: string) => {
-    const data = this.ensureData()
-    const notifications = data.memberNotifications.filter(notification => 
-      notification.memberId === memberId
-    ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    
-    dataLogger.debug('Retrieved member notifications', { 
-      memberId, 
-      count: notifications.length 
-    })
-    return notifications
-  }
-
-  markMemberNotificationAsRead = async (id: string) => {
-    await this.ensureInitialized()
-    
-    const data = this.ensureData()
-    const index = data.memberNotifications.findIndex(notification => notification.id === id)
-    if (index !== -1) {
-      data.memberNotifications[index] = {
-        ...data.memberNotifications[index],
-        isRead: true,
-        updatedAt: new Date().toISOString()
-      }
-      
-      await this.saveData()
-      dataLogger.info('Marked member notification as read', { notificationId: id })
-      return data.memberNotifications[index]
-    }
-    return null
-  }
-
-  getUnreadMemberNotificationsCount = (memberId: string) => {
-    const data = this.ensureData()
-    const unreadCount = data.memberNotifications.filter(notification => 
-      notification.memberId === memberId && !notification.isRead
-    ).length
-    dataLogger.debug('Unread member notifications count', { memberId, unreadCount })
-    return unreadCount
-  }
-
-  markAllMemberNotificationsAsRead = async (memberId: string) => {
-    await this.ensureInitialized()
-    
-    const data = this.ensureData()
-    let updatedCount = 0
-    data.memberNotifications.forEach((notification, index) => {
-      if (notification.memberId === memberId && !notification.isRead) {
-        data.memberNotifications[index] = {
-          ...notification,
-          isRead: true,
-          updatedAt: new Date().toISOString()
-        }
-        updatedCount++
-      }
-    })
-    
-    if (updatedCount > 0) {
-      await this.saveData()
-    }
-    
-    dataLogger.info('Marked all member notifications as read', { 
-      memberId, 
-      updatedCount 
-    })
-    return updatedCount
-  }
-
-  // === 데이터 일관성 검증 메서드 ===
-  validateDataConsistency = () => {
-    const data = this.ensureData()
-    const validationResults = {
-      totalRequests: data.trainerMemberRequests.length,
-      totalNotifications: data.trainerNotifications.length,
-      totalMembers: data.members.length,
-      issues: [] as string[],
-      summary: {} as any
-    }
-
-    dataLogger.info('Starting data consistency validation')
-
-    // 승인된 요청과 회원 등록 상태 일치 확인
-    const approvedRequests = data.trainerMemberRequests.filter(r => r.status === 'approved')
-    const registeredMembers = data.members.filter(m => m.isRegistered)
-    
-    validationResults.summary.approvedRequests = approvedRequests.length
-    validationResults.summary.registeredMembers = registeredMembers.length
-
-    // 알림과 승인된 요청 연결 확인
-    const approvalNotifications = data.trainerNotifications.filter(n => n.type === 'member_approved')
-    validationResults.summary.approvalNotifications = approvalNotifications.length
-
-    if (approvedRequests.length !== approvalNotifications.length) {
-      validationResults.issues.push(
-        `승인된 요청(${approvedRequests.length})과 승인 알림(${approvalNotifications.length}) 수가 일치하지 않음`
-      )
-    }
-
-    // 중복 요청 확인
-    const duplicateRequests = []
-    for (let i = 0; i < data.trainerMemberRequests.length; i++) {
-      for (let j = i + 1; j < data.trainerMemberRequests.length; j++) {
-        const req1 = data.trainerMemberRequests[i]
-        const req2 = data.trainerMemberRequests[j]
-        if (req1.trainerId === req2.trainerId && req1.memberId === req2.memberId && 
-            req1.status === 'pending' && req2.status === 'pending') {
-          duplicateRequests.push({ req1: req1.id, req2: req2.id })
-        }
-      }
-    }
-
-    if (duplicateRequests.length > 0) {
-      validationResults.issues.push(
-        `중복 pending 요청 발견: ${duplicateRequests.length}쌍`
-      )
-    }
-
-    // 트레이너별 요청 통계
-    const trainerStats = {}
-    data.trainerMemberRequests.forEach(request => {
-      if (!trainerStats[request.trainerId]) {
-        trainerStats[request.trainerId] = { pending: 0, approved: 0, rejected: 0 }
-      }
-      trainerStats[request.trainerId][request.status]++
-    })
-
-    validationResults.summary.trainerStats = trainerStats
-    validationResults.summary.uniqueTrainers = Object.keys(trainerStats).length
-
-    if (validationResults.issues.length === 0) {
-      dataLogger.info('Data consistency validation passed', validationResults.summary)
-    } else {
-      dataLogger.warn('Data consistency issues found', {
-        issueCount: validationResults.issues.length,
-        issues: validationResults.issues,
-        summary: validationResults.summary
-      })
-    }
-
-    return validationResults
-  }
-
-  generateSystemReport = () => {
-    const consistencyCheck = this.validateDataConsistency()
-    const data = this.ensureData()
-    
-    const report = {
-      timestamp: new Date().toISOString(),
-      systemHealth: consistencyCheck.issues.length === 0 ? 'healthy' : 'issues_detected',
-      statistics: {
-        requests: {
-          total: data.trainerMemberRequests.length,
-          pending: data.trainerMemberRequests.filter(r => r.status === 'pending').length,
-          approved: data.trainerMemberRequests.filter(r => r.status === 'approved').length,
-          rejected: data.trainerMemberRequests.filter(r => r.status === 'rejected').length
-        },
-        notifications: {
-          total: data.trainerNotifications.length,
-          unread: data.trainerNotifications.filter(n => !n.isRead).length,
-          byType: data.trainerNotifications.reduce((acc, n) => {
-            acc[n.type] = (acc[n.type] || 0) + 1
-            return acc
-          }, {})
-        },
-        members: {
-          total: data.members.length,
           registered: data.members.filter(m => m.isRegistered).length,
           unregistered: data.members.filter(m => !m.isRegistered).length
         }
@@ -356,6 +78,16 @@ members.find(m => m.id === request.memberId)
   getDataSnapshot = () => {
     return this.ensureData()
   }
+
+  // === 매칭 품질 모니터링 메서드 ===
+  getMatchingMonitorReport = () => {
+    return globalMatchingMonitor.getReport()
+  }
+
+  resetMatchingMonitor = () => {
+    globalMatchingMonitor.reset()
+    dataLogger.info('Matching monitor reset')
+  }
 }
 
 // 전역 인스턴스 생성
@@ -375,7 +107,7 @@ export const mockDataStore = {
   addMember: persistentMockDataStore.addMember,
   searchMembers: persistentMockDataStore.searchMembers,
 
-  // 회원 요청 관련
+  // 회원 요청 관련 (개선된 매칭 시스템)
   findMemberRequests: persistentMockDataStore.findMemberRequests,
   addMemberRequest: persistentMockDataStore.addMemberRequest,
   getMemberRequests: persistentMockDataStore.getMemberRequests,
@@ -413,7 +145,11 @@ export const mockDataStore = {
   getStorageInfo: persistentMockDataStore.getStorageInfo,
   isReady: persistentMockDataStore.isReady,
   forceReload: persistentMockDataStore.forceReload,
-  getDataSnapshot: persistentMockDataStore.getDataSnapshot
+  getDataSnapshot: persistentMockDataStore.getDataSnapshot,
+
+  // 매칭 품질 모니터링
+  getMatchingMonitorReport: persistentMockDataStore.getMatchingMonitorReport,
+  resetMatchingMonitor: persistentMockDataStore.resetMatchingMonitor
 }
 
 export default mockDataStore
