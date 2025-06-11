@@ -1,9 +1,18 @@
+ainerNotifications.length,
+          unread: data.trainerNotifications.filter(n => !n.isRead).length,
+          byType: data.trainerNotifications.reduce((acc: any, n) => {
+            acc[n.type] = (acc[n.type] || 0) + 1
+            return acc
+          }, {})
+        },
+        members: {
+          total: data.members.length,
           registered: data.members.filter(m => m.isRegistered).length,
           unregistered: data.members.filter(m => !m.isRegistered).length
         }
       },
       consistencyCheck,
-      recommendations: []
+      recommendations: [] as string[]
     }
 
     // 추천 사항 생성
