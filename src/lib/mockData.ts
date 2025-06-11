@@ -34,6 +34,18 @@ interface MockTrainerMemberRequest {
   updatedAt: string
 }
 
+interface MockTrainerNotification {
+  id: string
+  trainerId: string
+  type: 'member_approved' | 'member_rejected' | 'new_member_request' | 'session_scheduled' | 'other'
+  message: string
+  memberId?: string
+  memberName?: string
+  isRead: boolean
+  createdAt: string
+  updatedAt?: string
+}
+
 // 전역 변수로 메모리에 저장 (개발 환경에서만 사용)
 let mockSchedules: MockSchedule[] = [
   {
@@ -126,6 +138,47 @@ let mockTrainerMemberRequests: MockTrainerMemberRequest[] = [
     message: '건강한 운동 습관을 만들어보세요.',
     createdAt: '2025-06-10T11:00:00Z',
     updatedAt: '2025-06-10T12:00:00Z'
+  },
+  {
+    id: '3',
+    trainerId: 'user_2yGfgge9dGRBLeuxJSMzElVzite',
+    memberId: 'user_2yKzIsEWWWgTAK4lorZAT4CUFRC',
+    status: 'pending',
+    message: '안녕하세요! 함께 건강한 운동 습관을 만들어보시겠습니까?',
+    createdAt: '2025-06-11T01:10:00Z',
+    updatedAt: '2025-06-11T01:10:00Z'
+  },
+  {
+    id: '4',
+    trainerId: 'user_2yGfgge9dGRBLeuxJSMzElVzite',
+    memberId: 'teamqc0508@gmail.com',
+    status: 'pending',
+    message: '개인 맞춤 운동 프로그램을 제공해드리겠습니다.',
+    createdAt: '2025-06-11T01:15:00Z',
+    updatedAt: '2025-06-11T01:15:00Z'
+  }
+]
+
+let mockTrainerNotifications: MockTrainerNotification[] = [
+  {
+    id: '1',
+    trainerId: 'user_2yGfgge9dGRBLeuxJSMzElVzite',
+    type: 'member_approved',
+    message: '김 회원님이 PT 요청을 승인했습니다.',
+    memberId: '1',
+    memberName: '김 회원',
+    isRead: false,
+    createdAt: '2025-06-10T10:00:00Z'
+  },
+  {
+    id: '2',
+    trainerId: 'user_2yGfgge9dGRBLeuxJSMzElVzite',
+    type: 'member_approved',
+    message: '정 회원님이 PT 요청을 승인했습니다.',
+    memberId: '5',
+    memberName: '정 회원',
+    isRead: false,
+    createdAt: '2025-06-10T12:00:00Z'
   }
 ]
 
@@ -269,8 +322,10 @@ export const mockDataStore = {
   updateRequestStatus: (id: string, status: 'approved' | 'rejected') => {
     const index = mockTrainerMemberRequests.findIndex(request => request.id === id)
     if (index !== -1) {
+      const request = mockTrainerMemberRequests[index]
+      
       mockTrainerMemberRequests[index] = {
-        ...mockTrainerMemberRequests[index],
+        ...request,
         status,
         updatedAt: new Date().toISOString()
       }
@@ -278,11 +333,37 @@ export const mockDataStore = {
       // 승인시 회원의 isRegistered 상태 업데이트
       if (status === 'approved') {
         const memberIndex = mockMembers.findIndex(member => 
-          member.id === mockTrainerMemberRequests[index].memberId
+          member.id === request.memberId
         )
         if (memberIndex !== -1) {
           mockMembers[memberIndex].isRegistered = true
         }
+        
+        // 트레이너에게 알림 생성
+        const memberInfo = mockMembers.find(m => m.id === request.memberId)
+        let memberName = '회원'
+        
+        if (memberInfo) {
+          memberName = `${memberInfo.firstName} ${memberInfo.lastName}`
+        } else if (request.memberId.includes('@')) {
+          // 이메일인 경우 사용자명을 추출하여 이름 생성
+          const username = request.memberId.split('@')[0]
+          memberName = `${username.charAt(0).toUpperCase() + username.slice(1)} 회원`
+        }
+        
+        const notification: MockTrainerNotification = {
+          id: Date.now().toString(),
+          trainerId: request.trainerId,
+          type: 'member_approved',
+          message: `${memberName}님이 PT 요청을 승인했습니다.`,
+          memberId: request.memberId,
+          memberName: memberName,
+          isRead: false,
+          createdAt: new Date().toISOString()
+        }
+        
+        mockTrainerNotifications.push(notification)
+        console.log('[updateRequestStatus] Created trainer notification:', notification)
       }
       
       return mockTrainerMemberRequests[index]
@@ -340,5 +421,67 @@ export const mockDataStore = {
     
     console.log('[getTrainerMembers] Final members list:', members)
     return members
+  },
+
+  // 트레이너 알림 관련 메소드들
+  addTrainerNotification: (notification: Omit<MockTrainerNotification, 'id' | 'createdAt'>) => {
+    const newNotification: MockTrainerNotification = {
+      ...notification,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString()
+    }
+    mockTrainerNotifications.push(newNotification)
+    console.log('[addTrainerNotification] Added notification:', newNotification)
+    return newNotification
+  },
+
+  getTrainerNotifications: (trainerId: string) => {
+    console.log('[getTrainerNotifications] Searching for trainerId:', trainerId)
+    const notifications = mockTrainerNotifications.filter(notification => 
+      notification.trainerId === trainerId
+    ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    
+    console.log('[getTrainerNotifications] Found notifications:', notifications.length)
+    return notifications
+  },
+
+  markTrainerNotificationAsRead: (id: string) => {
+    const index = mockTrainerNotifications.findIndex(notification => notification.id === id)
+    if (index !== -1) {
+      mockTrainerNotifications[index] = {
+        ...mockTrainerNotifications[index],
+        isRead: true,
+        updatedAt: new Date().toISOString()
+      }
+      console.log('[markTrainerNotificationAsRead] Marked as read:', id)
+      return mockTrainerNotifications[index]
+    }
+    return null
+  },
+
+  // 트레이너의 읽지 않은 알림 개수 조회
+  getUnreadTrainerNotificationsCount: (trainerId: string) => {
+    const unreadCount = mockTrainerNotifications.filter(notification => 
+      notification.trainerId === trainerId && !notification.isRead
+    ).length
+    console.log('[getUnreadTrainerNotificationsCount] Unread count for trainer:', trainerId, unreadCount)
+    return unreadCount
+  },
+
+  // 트레이너의 모든 알림을 읽음 처리
+  markAllTrainerNotificationsAsRead: (trainerId: string) => {
+    let updatedCount = 0
+    mockTrainerNotifications.forEach((notification, index) => {
+      if (notification.trainerId === trainerId && !notification.isRead) {
+        mockTrainerNotifications[index] = {
+          ...notification,
+          isRead: true,
+          updatedAt: new Date().toISOString()
+        }
+        updatedCount++
+      }
+    })
+    console.log('[markAllTrainerNotificationsAsRead] Marked', updatedCount, 'notifications as read')
+    return updatedCount
   }
 }
