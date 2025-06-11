@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRole, getCurrentUser } from '@/lib/auth'
 import { mockDataStore } from '@/lib/mockData'
+import { createApiLogger } from '@/lib/logger'
 
 // Clerk Client 대신 간단한 방식 사용
+
+// API별 로거 생성
+const apiLogger = createApiLogger('member-trainer-requests')
 
 // GET /api/member/trainer-requests - 받은 트레이너 요청 목록 조회
 export async function GET(request: NextRequest) {
@@ -36,18 +40,18 @@ export async function GET(request: NextRequest) {
     
     // 1. 먼저 Clerk ID로 검색 (최우선)
     let memberRequests = mockDataStore.getMemberRequests(currentUser.id)
-    console.log('[member-requests] Found by Clerk ID:', memberRequests.length)
+    apiLogger.debug('Found by Clerk ID', { count: memberRequests.length })
     
     // 2. Clerk ID로 찾지 못한 경우 이메일로 검색
     if (memberRequests.length === 0 && currentUserEmail) {
-      console.log('[member-requests] Trying email search as fallback')
+      apiLogger.debug('Trying email search as fallback')
       memberRequests = mockDataStore.getMemberRequestsByEmail(currentUserEmail)
-      console.log('[member-requests] Found by email:', memberRequests.length)
+      apiLogger.debug('Found by email', { count: memberRequests.length })
     }
     
     // 3. 여전히 찾지 못한 경우 모든 요청에서 이메일 매칭 시도
     if (memberRequests.length === 0 && currentUserEmail) {
-      console.log('[member-requests] Trying comprehensive email matching')
+      apiLogger.debug('Trying comprehensive email matching')
       memberRequests = allRequests.filter(request => {
         // memberId가 현재 사용자의 이메일과 매치되는지 확인
         return request.memberId === currentUserEmail || 
@@ -55,10 +59,13 @@ export async function GET(request: NextRequest) {
                (request.memberId.includes('@') && currentUserEmail.includes('@') && 
                 request.memberId.split('@')[0] === currentUserEmail.split('@')[0])
       })
-      console.log('[member-requests] Found by comprehensive matching:', memberRequests.length)
+      apiLogger.debug('Found by comprehensive matching', { count: memberRequests.length })
     }
     
-    console.log('[member-requests] Final found requests:', memberRequests)
+    apiLogger.info('Final found requests', { 
+      totalFound: memberRequests.length,
+      requests: memberRequests.map(req => ({ id: req.id, status: req.status }))
+    })
     
     // 트레이너 정보와 함께 반환하기 위해 요청 데이터 가공
     const requestsWithTrainerInfo = memberRequests.map(request => {
@@ -79,16 +86,14 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // 개발 환경 로깅
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[member-requests] Member requests retrieved successfully:')
-      console.log('- Member Clerk ID:', currentUser.id)
-      console.log('- Member email:', currentUserEmail)
-      console.log('- Total requests found:', requestsWithTrainerInfo.length)
-      console.log('- Pending requests:', requestsWithTrainerInfo.filter(r => r.status === 'pending').length)
-      console.log('- Approved requests:', requestsWithTrainerInfo.filter(r => r.status === 'approved').length)
-      console.log('- Request details:', requestsWithTrainerInfo.map(r => ({ id: r.id, status: r.status })))
-    }
+    // 성공 로깅
+    apiLogger.info('Member requests retrieved successfully', {
+      clerkId: currentUser.id,
+      email: currentUserEmail,
+      totalRequests: requestsWithTrainerInfo.length,
+      pendingRequests: requestsWithTrainerInfo.filter(r => r.status === 'pending').length,
+      approvedRequests: requestsWithTrainerInfo.filter(r => r.status === 'approved').length
+    })
 
     return NextResponse.json({
       success: true,
@@ -97,7 +102,10 @@ export async function GET(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error retrieving trainer requests:', error)
+    apiLogger.error('Error retrieving trainer requests', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
     
     if (error instanceof Error && error.message.includes('unauthorized')) {
       return NextResponse.json(
@@ -115,7 +123,7 @@ export async function GET(request: NextRequest) {
 
 // PATCH /api/member/trainer-requests - 트레이너 요청 승인/거절
 export async function PATCH(request: NextRequest) {
-  console.log('PATCH /api/member/trainer-requests - Request received')
+  apiLogger.info('PATCH /api/member/trainer-requests - Request received')
   
   try {
     // 회원 권한 체크
@@ -124,6 +132,7 @@ export async function PATCH(request: NextRequest) {
     // 현재 사용자 정보 가져오기
     const currentUser = await getCurrentUser()
     if (!currentUser) {
+      apiLogger.error('Unauthorized - no current user found')
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -132,12 +141,15 @@ export async function PATCH(request: NextRequest) {
 
     // 요청 본문에서 데이터 추출
     const body = await request.json()
-    console.log('Request body:', body)
+    apiLogger.debug('Request body received', { 
+      requestId: body.requestId, 
+      status: body.status 
+    })
     const { requestId, status } = body
 
     // 입력값 검증
     if (!requestId) {
-      console.log('Request ID is missing')
+      apiLogger.error('Request ID is missing')
       return NextResponse.json(
         { error: 'Request ID is required' },
         { status: 400 }
@@ -145,7 +157,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (!status || !['approved', 'rejected'].includes(status)) {
-      console.log('Invalid status:', status)
+      apiLogger.error('Invalid status provided', { status })
       return NextResponse.json(
         { error: 'Status must be either "approved" or "rejected"' },
         { status: 400 }

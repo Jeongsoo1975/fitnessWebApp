@@ -1,33 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRole, getCurrentUser, validateUserByEmail } from '@/lib/auth'
 import { mockDataStore } from '@/lib/mockData'
+import { createApiLogger } from '@/lib/logger'
 
 // 실제 Clerk 사용자 검증을 통한 안전한 회원 등록 요청
 
+// API별 로거 생성
+const apiLogger = createApiLogger('trainer-member-request')
+
 // POST /api/trainer/member-request - 회원 등록 요청 보내기 (사용자 검증 포함)
 export async function POST(request: NextRequest) {
-  console.log('POST /api/trainer/member-request - Request received')
+  apiLogger.info('POST /api/trainer/member-request - Request received')
   
   try {
-    // 임시로 권한 체크 우회하여 테스트
-    console.log('POST /api/trainer/member-request - Starting without auth check')
+    // 트레이너 권한 체크
+    await requireRole('trainer')
+    apiLogger.info('Trainer role authentication successful')
     
-    // 하드코딩된 트레이너 ID로 테스트
-    const currentUser = {
-      id: 'user_2yGfgge9dGRBLeuxJSMzElVzite',
-      emailAddresses: [{ emailAddress: 'trainer@example.com' }]
+    // 현재 사용자 정보 가져오기
+    const currentUser = await getCurrentUser()
+    if (!currentUser) {
+      apiLogger.error('Authentication failed - no current user found')
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
     }
     
-    console.log('Using hardcoded trainer ID for testing:', currentUser.id)
+    apiLogger.info('Current user authenticated', { 
+      trainerId: currentUser.id,
+      role: currentUser.role
+    })
 
     // 요청 본문에서 데이터 추출
     const body = await request.json()
-    console.log('Request body:', body)
+    apiLogger.debug('Request body received', { 
+      memberId: body.memberId,
+      memberEmail: body.memberEmail,
+      hasMessage: !!body.message
+    })
     const { memberId, memberEmail, memberFirstName, memberLastName, message } = body
 
     // 입력값 검증
     if (!memberId) {
-      console.log('[member-request] Member ID is missing')
+      apiLogger.error('Member ID is missing in request')
       return NextResponse.json(
         { error: 'Member ID is required' },
         { status: 400 }
@@ -35,19 +51,19 @@ export async function POST(request: NextRequest) {
     }
 
     // === 새로운 사용자 존재 검증 단계 ===
-    console.log('[member-request] Validating user existence for:', memberId)
+    apiLogger.info('Validating user existence', { memberId })
     
     let validatedUser = null
     let actualMemberId = memberId
     
     // 이메일 형태인 경우 실제 Clerk 사용자 검증
     if (memberId.includes('@')) {
-      console.log('[member-request] Email format detected, validating with Clerk API')
+      apiLogger.debug('Email format detected, validating with Clerk API')
       
       validatedUser = await validateUserByEmail(memberId)
       
       if (!validatedUser) {
-        console.log('[member-request] User validation failed - user does not exist:', memberId)
+        apiLogger.error('User validation failed - user does not exist', { memberId })
         return NextResponse.json(
           { 
             error: 'User not found',
@@ -59,11 +75,14 @@ export async function POST(request: NextRequest) {
       
       // 검증된 사용자 정보 사용
       actualMemberId = validatedUser.id // 실제 Clerk 사용자 ID 사용
-      console.log('[member-request] User validation successful:', validatedUser.id)
+      apiLogger.info('User validation successful', { 
+        originalInput: memberId,
+        validatedId: validatedUser.id 
+      })
       
       // 자기 자신에게 요청하는 것 방지
       if (actualMemberId === currentUser.id) {
-        console.log('[member-request] Cannot send request to self')
+        apiLogger.warn('Attempt to send request to self', { userId: actualMemberId })
         return NextResponse.json(
           { 
             error: 'Invalid request',
@@ -75,7 +94,7 @@ export async function POST(request: NextRequest) {
       
     } else {
       // 기존 ID 형태인 경우 (mockData 호환성)
-      console.log('[member-request] Using provided ID without email validation:', memberId)
+      apiLogger.debug('Using provided ID without email validation', { memberId })
     }
 
     // 회원 정보 구성 (검증된 정보 또는 전달받은 정보 사용)
@@ -93,10 +112,11 @@ export async function POST(request: NextRequest) {
       isRegistered: false
     }
     
-    console.log('[member-request] Final member info for request:', member)
+    apiLogger.debug('Final member info for request', { member })
 
     // 이미 등록된 회원인지 확인
     if (member.isRegistered) {
+      apiLogger.warn('Member is already registered with a trainer', { memberId: member.id })
       return NextResponse.json(
         { error: 'Member is already registered with a trainer' },
         { status: 409 }
@@ -110,6 +130,11 @@ export async function POST(request: NextRequest) {
     )
     
     if (duplicateRequest) {
+      apiLogger.warn('Duplicate pending request detected', { 
+        memberId,
+        trainerId: currentUser.id,
+        existingRequestId: duplicateRequest.id
+      })
       return NextResponse.json(
         { error: 'A pending request already exists for this member' },
         { status: 409 }
@@ -117,7 +142,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 새로운 등록 요청 생성
-    console.log('[member-request] Creating new request with validated member ID:', actualMemberId)
+    apiLogger.info('Creating new request with validated member ID', { actualMemberId })
     
     const newRequest = mockDataStore.addMemberRequest({
       trainerId: currentUser.id,
@@ -125,20 +150,14 @@ export async function POST(request: NextRequest) {
       message: message || '함께 운동하게 되어 기쁩니다!'
     })
 
-    // 개발 환경 로깅
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🎉 [member-request] New member request created successfully:')
-      console.log('- Request ID:', newRequest.id)
-      console.log('- Trainer ID:', newRequest.trainerId)
-      console.log('- Member ID (validated):', newRequest.memberId)
-      console.log('- Original Input:', memberId)
-      console.log('- Message:', newRequest.message)
-      console.log('- User Validation:', validatedUser ? 'SUCCESS' : 'SKIPPED')
-      
-      // 시스템 전체 상태 확인
-      const allRequests = mockDataStore.getAllRequests()
-      console.log('- Total requests after add:', allRequests.length)
-    }
+    // 성공 로깅
+    apiLogger.info('New member request created successfully', {
+      requestId: newRequest.id,
+      trainerId: newRequest.trainerId,
+      memberId: newRequest.memberId,
+      originalInput: memberId,
+      userValidation: validatedUser ? 'SUCCESS' : 'SKIPPED'
+    })
 
     return NextResponse.json({
       success: true,
@@ -152,13 +171,34 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('[member-request] Error creating member request:', error)
+    apiLogger.error('Error creating member request', { 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
     
-    if (error instanceof Error && error.message.includes('unauthorized')) {
-      return NextResponse.json(
-        { error: 'Unauthorized access' },
-        { status: 403 }
-      )
+    // 인증 관련 오류 처리
+    if (error instanceof Error) {
+      if (error.message.includes('unauthorized') || error.message.includes('Unauthorized')) {
+        apiLogger.warn('Unauthorized access attempt', { error: error.message })
+        return NextResponse.json(
+          { 
+            error: 'Unauthorized access',
+            message: '트레이너 권한이 필요합니다. 다시 로그인해주세요.'
+          },
+          { status: 403 }
+        )
+      }
+      
+      if (error.message.includes('role') || error.message.includes('Role')) {
+        apiLogger.warn('Role verification failed', { error: error.message })
+        return NextResponse.json(
+          { 
+            error: 'Access denied',
+            message: '트레이너 계정으로만 접근 가능합니다.'
+          },
+          { status: 403 }
+        )
+      }
     }
 
     return NextResponse.json(
