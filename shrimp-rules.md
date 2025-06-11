@@ -95,12 +95,13 @@
 ## Workflow Standards
 
 ### Development Process
-1. Create feature branch from main
-2. Implement functionality following these rules
-3. Test all user interactions thoroughly
-4. Commit with conventional commit messages
-5. Create pull request for code review
-6. Merge only after successful testing
+1. **Real Implementation First** - Always start with actual database and API integration
+2. **No Mock Data Phase** - Skip all mock data creation, go directly to real data implementation
+3. **Database-First Approach** - Set up actual D1 database schema before frontend implementation
+4. **Authentication Integration** - Connect Clerk authentication before building protected features
+5. **Test with Real Data** - Use actual user scenarios and real data for testing
+6. **Error Handling Priority** - Implement proper error handling for all real data operations
+7. **Code Quality Focus** - Prioritize working implementations over placeholder solutions
 
 ### Database Migration Process
 1. Create migration files in `database/migrations/`
@@ -121,25 +122,52 @@
 - New database tables require: schema update, type definitions, API endpoints, and client functions
 - UI component changes must maintain consistency across trainer and member interfaces
 
-## AI Decision-making Standards
+### AI Decision-making Standards
 
 ### Priority Decision Tree
-1. **Security First**: Always implement proper authentication and data validation
-2. **User Role Separation**: Ensure trainers and members see appropriate interfaces
-3. **Data Integrity**: Validate all inputs before database operations
-4. **Performance**: Use edge functions and caching where appropriate
-5. **User Experience**: Implement proper loading states and error messages
+1. **Real Implementation Priority**: Always choose real database integration over mock solutions
+2. **Actual Functionality First**: Implement working features that connect to real services
+3. **Security First**: Always implement proper authentication and data validation
+4. **User Role Separation**: Ensure trainers and members see appropriate interfaces
+5. **Data Integrity**: Validate all inputs before database operations
+6. **Performance**: Use edge functions and caching where appropriate
+7. **User Experience**: Implement proper loading states and error messages
 
 ### Ambiguous Situation Handling
-- When unsure about user permissions, default to more restrictive access
-- When choosing between features, prioritize MVP requirements from PRD
-- When implementing UI, follow mobile-first responsive design
-- When in doubt about data structure, refer to PRD requirements
+- **When data is needed**: Always implement real database queries, never create sample data
+- **When testing is required**: Use actual user scenarios with real authentication flow
+- **When unsure about user permissions**: Default to more restrictive access
+- **When choosing between features**: Prioritize MVP requirements from PRD
+- **When implementing UI**: Follow mobile-first responsive design
+- **When in doubt about data structure**: Refer to PRD requirements and implement actual database schema
+
+## Data Management Standards
+
+### Real Data Implementation Priority
+- **Always use actual database operations** - Connect to Cloudflare D1 for all data operations
+- **Implement real API endpoints** - Create actual REST endpoints in workers/api/
+- **Use real authentication flow** - Integrate with Clerk for actual user management
+- **Focus on actual functionality** - Build features that work with real user interactions
+- **Test with real scenarios** - Use actual user workflows for testing
+
+### Database Integration Requirements
+- All data must come from Cloudflare D1 database queries
+- Implement proper error handling for database operations
+- Use prepared statements for all database interactions
+- Create actual database schema migrations
+- Test database operations with real data scenarios
 
 ## Prohibited Actions
 
-### Strictly Forbidden
-- **Never create mock or dummy data** - Use only real data from user inputs
+### Strictly Forbidden - Data Management
+- **🚫 ABSOLUTELY NEVER CREATE MOCK, DUMMY, OR SAMPLE DATA** - This is the highest priority rule
+- **🚫 Never generate fake user profiles, workout data, or any simulated content**
+- **🚫 Never create mock API responses or simulated data flows**
+- **🚫 Never use placeholder data in place of real database connections**
+- **🚫 Never create mock stores, mock data files, or temporary data structures**
+- **🚫 Never use example data, test data, or dummy data in implementation**
+
+### Strictly Forbidden - General Development
 - **Never implement features not specified in PRD** - Stick to documented requirements
 - **Never bypass authentication checks** - All protected routes must verify user identity
 - **Never store sensitive data in plain text** - Use proper encryption and secure storage
