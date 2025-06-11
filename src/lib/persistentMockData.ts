@@ -1,4 +1,11 @@
-ainerNotifications.length,
+: {
+          total: data.trainerMemberRequests.length,
+          pending: data.trainerMemberRequests.filter(r => r.status === 'pending').length,
+          approved: data.trainerMemberRequests.filter(r => r.status === 'approved').length,
+          rejected: data.trainerMemberRequests.filter(r => r.status === 'rejected').length
+        },
+        notifications: {
+          total: data.trainerNotifications.length,
           unread: data.trainerNotifications.filter(n => !n.isRead).length,
           byType: data.trainerNotifications.reduce((acc: any, n) => {
             acc[n.type] = (acc[n.type] || 0) + 1
