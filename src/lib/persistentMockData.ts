@@ -1,4 +1,143 @@
-Notifications[index]
+members.find(m => m.id === request.memberId)
+        return member ? { ...member, requestId: request.id } : null
+      }
+    }).filter(Boolean)
+    
+    return members
+  }
+
+  // === 트레이너 알림 관련 메서드 ===
+  addTrainerNotification = async (notification: Omit<MockTrainerNotification, 'id' | 'createdAt'>) => {
+    await this.ensureInitialized()
+    
+    const data = this.ensureData()
+    const newNotification: MockTrainerNotification = {
+      ...notification,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString()
+    }
+    
+    data.trainerNotifications.push(newNotification)
+    await this.saveData()
+    
+    dataLogger.info('Added trainer notification', { notificationId: newNotification.id })
+    return newNotification
+  }
+
+  getTrainerNotifications = (trainerId: string) => {
+    const data = this.ensureData()
+    const notifications = data.trainerNotifications.filter(notification => 
+      notification.trainerId === trainerId
+    ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    
+    dataLogger.debug('Retrieved trainer notifications', { 
+      trainerId, 
+      count: notifications.length 
+    })
+    return notifications
+  }
+
+  markTrainerNotificationAsRead = async (id: string) => {
+    await this.ensureInitialized()
+    
+    const data = this.ensureData()
+    const index = data.trainerNotifications.findIndex(notification => notification.id === id)
+    if (index !== -1) {
+      data.trainerNotifications[index] = {
+        ...data.trainerNotifications[index],
+        isRead: true,
+        updatedAt: new Date().toISOString()
+      }
+      
+      await this.saveData()
+      dataLogger.info('Marked notification as read', { notificationId: id })
+      return data.trainerNotifications[index]
+    }
+    return null
+  }
+
+  getUnreadTrainerNotificationsCount = (trainerId: string) => {
+    const data = this.ensureData()
+    const unreadCount = data.trainerNotifications.filter(notification => 
+      notification.trainerId === trainerId && !notification.isRead
+    ).length
+    dataLogger.debug('Unread notifications count', { trainerId, unreadCount })
+    return unreadCount
+  }
+
+  markAllTrainerNotificationsAsRead = async (trainerId: string) => {
+    await this.ensureInitialized()
+    
+    const data = this.ensureData()
+    let updatedCount = 0
+    data.trainerNotifications.forEach((notification, index) => {
+      if (notification.trainerId === trainerId && !notification.isRead) {
+        data.trainerNotifications[index] = {
+          ...notification,
+          isRead: true,
+          updatedAt: new Date().toISOString()
+        }
+        updatedCount++
+      }
+    })
+    
+    if (updatedCount > 0) {
+      await this.saveData()
+    }
+    
+    dataLogger.info('Marked all notifications as read', { 
+      trainerId, 
+      updatedCount 
+    })
+    return updatedCount
+  }
+
+  // === 회원 알림 관련 메서드 ===
+  addMemberNotification = async (notification: Omit<MockMemberNotification, 'id' | 'createdAt'>) => {
+    await this.ensureInitialized()
+    
+    const data = this.ensureData()
+    const newNotification: MockMemberNotification = {
+      ...notification,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString()
+    }
+    
+    data.memberNotifications.push(newNotification)
+    await this.saveData()
+    
+    dataLogger.info('Added member notification', { notificationId: newNotification.id })
+    return newNotification
+  }
+
+  getMemberNotifications = (memberId: string) => {
+    const data = this.ensureData()
+    const notifications = data.memberNotifications.filter(notification => 
+      notification.memberId === memberId
+    ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    
+    dataLogger.debug('Retrieved member notifications', { 
+      memberId, 
+      count: notifications.length 
+    })
+    return notifications
+  }
+
+  markMemberNotificationAsRead = async (id: string) => {
+    await this.ensureInitialized()
+    
+    const data = this.ensureData()
+    const index = data.memberNotifications.findIndex(notification => notification.id === id)
+    if (index !== -1) {
+      data.memberNotifications[index] = {
+        ...data.memberNotifications[index],
+        isRead: true,
+        updatedAt: new Date().toISOString()
+      }
+      
+      await this.saveData()
+      dataLogger.info('Marked member notification as read', { notificationId: id })
+      return data.memberNotifications[index]
     }
     return null
   }
@@ -167,6 +306,39 @@ Notifications[index]
     return report
   }
 
+  // === 복구 시스템 통합 메서드 ===
+  createBackup = async () => {
+    const data = this.ensureData()
+    return await dataRecoveryUtils.createBackup(data)
+  }
+
+  restoreFromBackup = async () => {
+    const restoredData = await dataRecoveryUtils.restoreFromBackup()
+    if (restoredData) {
+      this.memoryCache = restoredData
+      await this.saveData()
+      dataLogger.info('Data restored from backup successfully')
+      return true
+    }
+    return false
+  }
+
+  diagnoseSystem = async () => {
+    return await dataRecoveryUtils.diagnoseSystem()
+  }
+
+  getBackupList = async () => {
+    return await dataRecoveryUtils.getBackupList()
+  }
+
+  performManualRecovery = async (source: 'backup' | 'empty' = 'backup') => {
+    const result = await dataRecoveryUtils.performManualRecovery(source)
+    if (result.success) {
+      await this.loadData()
+    }
+    return result
+  }
+
   // === 디버깅 및 관리 메서드 ===
   getStorageInfo = () => {
     return this.dataStore.getStorageInfo()
@@ -229,6 +401,13 @@ export const mockDataStore = {
   // 데이터 일관성 검증
   validateDataConsistency: persistentMockDataStore.validateDataConsistency,
   generateSystemReport: persistentMockDataStore.generateSystemReport,
+
+  // 복구 시스템
+  createBackup: persistentMockDataStore.createBackup,
+  restoreFromBackup: persistentMockDataStore.restoreFromBackup,
+  diagnoseSystem: persistentMockDataStore.diagnoseSystem,
+  getBackupList: persistentMockDataStore.getBackupList,
+  performManualRecovery: persistentMockDataStore.performManualRecovery,
 
   // 관리 메서드
   getStorageInfo: persistentMockDataStore.getStorageInfo,
