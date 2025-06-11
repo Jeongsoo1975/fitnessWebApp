@@ -127,13 +127,17 @@ export async function POST(request: NextRequest) {
 
     // 개발 환경 로깅
     if (process.env.NODE_ENV === 'development') {
-      console.log('[member-request] New member request created successfully:')
+      console.log('🎉 [member-request] New member request created successfully:')
       console.log('- Request ID:', newRequest.id)
       console.log('- Trainer ID:', newRequest.trainerId)
       console.log('- Member ID (validated):', newRequest.memberId)
       console.log('- Original Input:', memberId)
       console.log('- Message:', newRequest.message)
       console.log('- User Validation:', validatedUser ? 'SUCCESS' : 'SKIPPED')
+      
+      // 시스템 전체 상태 확인
+      const allRequests = mockDataStore.getAllRequests()
+      console.log('- Total requests after add:', allRequests.length)
     }
 
     return NextResponse.json({

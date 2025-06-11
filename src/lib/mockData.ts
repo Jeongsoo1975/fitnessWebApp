@@ -213,6 +213,17 @@ export const mockDataStore = {
       updatedAt: new Date().toISOString()
     }
     mockTrainerMemberRequests.push(newRequest)
+    
+    // 디버깅: 추가된 요청 로깅
+    console.log('🔥 [addMemberRequest] NEW REQUEST ADDED:')
+    console.log('- Request ID:', newRequest.id)
+    console.log('- Trainer ID:', newRequest.trainerId)
+    console.log('- Member ID:', newRequest.memberId)
+    console.log('- Status:', newRequest.status)
+    console.log('- Message:', newRequest.message)
+    console.log('- Total requests in system:', mockTrainerMemberRequests.length)
+    console.log('- All requests:', mockTrainerMemberRequests.map(r => ({ id: r.id, trainerId: r.trainerId, memberId: r.memberId, status: r.status })))
+    
     return newRequest
   },
 
@@ -264,6 +275,16 @@ export const mockDataStore = {
 
   // 디버깅용: 모든 요청 조회
   getAllRequests: () => {
+    console.log('🔥 [getAllRequests] Current system state:')
+    console.log('- Total requests:', mockTrainerMemberRequests.length)
+    console.log('- Requests details:', mockTrainerMemberRequests.map(r => ({
+      id: r.id,
+      trainerId: r.trainerId,
+      memberId: r.memberId,
+      status: r.status,
+      message: r.message?.substring(0, 50) + '...',
+      createdAt: r.createdAt
+    })))
     return [...mockTrainerMemberRequests]
   },
 
