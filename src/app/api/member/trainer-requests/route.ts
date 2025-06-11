@@ -23,44 +23,15 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 회원이 받은 트레이너 요청 목록 조회
-    // 우선순위: 1) Clerk ID, 2) 이메일
+    // 회원이 받은 트레이너 요청 목록 조회 - 정규화된 매칭 로직 사용
     const currentUserEmail = currentUser.emailAddresses?.[0]?.emailAddress
-    console.log('[member-requests] Looking for requests for:')
-    console.log('- Member Clerk ID:', currentUser.id)
-    console.log('- Member email:', currentUserEmail)
-    
-    // 먼저 모든 요청을 확인 (디버깅용)
-    const allRequests = mockDataStore.getAllRequests()
-    console.log('[member-requests] All requests in system:', allRequests.length)
-    console.log('[member-requests] All requests details:')
-    allRequests.forEach((req, index) => {
-      console.log(`  ${index + 1}. ID: ${req.id}, TrainerID: ${req.trainerId}, MemberID: ${req.memberId}, Status: ${req.status}, Created: ${req.createdAt}`)
+    apiLogger.info('Looking for requests for member', {
+      clerkId: currentUser.id,
+      email: currentUserEmail
     })
     
-    // 1. 먼저 Clerk ID로 검색 (최우선)
-    let memberRequests = mockDataStore.getMemberRequests(currentUser.id)
-    apiLogger.debug('Found by Clerk ID', { count: memberRequests.length })
-    
-    // 2. Clerk ID로 찾지 못한 경우 이메일로 검색
-    if (memberRequests.length === 0 && currentUserEmail) {
-      apiLogger.debug('Trying email search as fallback')
-      memberRequests = mockDataStore.getMemberRequestsByEmail(currentUserEmail)
-      apiLogger.debug('Found by email', { count: memberRequests.length })
-    }
-    
-    // 3. 여전히 찾지 못한 경우 모든 요청에서 이메일 매칭 시도
-    if (memberRequests.length === 0 && currentUserEmail) {
-      apiLogger.debug('Trying comprehensive email matching')
-      memberRequests = allRequests.filter(request => {
-        // memberId가 현재 사용자의 이메일과 매치되는지 확인
-        return request.memberId === currentUserEmail || 
-               request.memberId === currentUser.id ||
-               (request.memberId.includes('@') && currentUserEmail.includes('@') && 
-                request.memberId.split('@')[0] === currentUserEmail.split('@')[0])
-      })
-      apiLogger.debug('Found by comprehensive matching', { count: memberRequests.length })
-    }
+    // 정규화된 매칭 로직 사용
+    const memberRequests = mockDataStore.getMemberRequests(currentUser.id)
     
     apiLogger.info('Final found requests', { 
       totalFound: memberRequests.length,
@@ -164,46 +135,32 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    // 현재 사용자의 요청들 조회 (GET과 동일한 로직)
+    // 현재 사용자의 요청들 조회 - 정규화된 매칭 로직 사용
     const currentUserEmail = currentUser.emailAddresses?.[0]?.emailAddress
-    console.log('[member-requests-patch] Looking for user requests:')
-    console.log('- User Clerk ID:', currentUser.id)
-    console.log('- User email:', currentUserEmail)
+    apiLogger.info('Looking for user requests for PATCH operation', {
+      clerkId: currentUser.id,
+      email: currentUserEmail
+    })
     
-    // 모든 요청 확인
-    const allRequests = mockDataStore.getAllRequests()
-    console.log('[member-requests-patch] Total requests in system:', allRequests.length)
+    // 정규화된 매칭 로직 사용
+    const memberRequests = mockDataStore.getMemberRequests(currentUser.id)
     
-    // 동일한 검색 로직 적용
-    let memberRequests = mockDataStore.getMemberRequests(currentUser.id)
-    console.log('[member-requests-patch] Found by Clerk ID:', memberRequests.length)
-    
-    if (memberRequests.length === 0 && currentUserEmail) {
-      console.log('[member-requests-patch] Trying email search as fallback')
-      memberRequests = mockDataStore.getMemberRequestsByEmail(currentUserEmail)
-      console.log('[member-requests-patch] Found by email:', memberRequests.length)
-    }
-    
-    if (memberRequests.length === 0 && currentUserEmail) {
-      console.log('[member-requests-patch] Trying comprehensive email matching')
-      memberRequests = allRequests.filter(request => {
-        return request.memberId === currentUserEmail || 
-               request.memberId === currentUser.id ||
-               (request.memberId.includes('@') && currentUserEmail.includes('@') && 
-                request.memberId.split('@')[0] === currentUserEmail.split('@')[0])
-      })
-      console.log('[member-requests-patch] Found by comprehensive matching:', memberRequests.length)
-    }
-    
-    console.log('[member-requests-patch] Final user requests:', memberRequests)
-    console.log('[member-requests-patch] Looking for request ID:', requestId)
+    apiLogger.info('Found member requests for PATCH', {
+      clerkId: currentUser.id,
+      email: currentUserEmail,
+      requestCount: memberRequests.length,
+      lookingForRequestId: requestId
+    })
     
     // 요청이 현재 회원에게 온 것인지 확인
     const targetRequest = memberRequests.find(req => req.id === requestId)
-    console.log('Found target request:', targetRequest)
     
     if (!targetRequest) {
-      console.log('Request not found or not authorized')
+      apiLogger.warn('Request not found or not authorized', {
+        requestId,
+        userId: currentUser.id,
+        availableRequests: memberRequests.map(r => r.id)
+      })
       return NextResponse.json(
         { error: 'Request not found or not authorized to modify this request' },
         { status: 404 }
@@ -212,6 +169,10 @@ export async function PATCH(request: NextRequest) {
 
     // 이미 처리된 요청인지 확인
     if (targetRequest.status !== 'pending') {
+      apiLogger.warn('Request already processed', {
+        requestId,
+        currentStatus: targetRequest.status
+      })
       return NextResponse.json(
         { error: 'Request has already been processed' },
         { status: 409 }
@@ -219,43 +180,29 @@ export async function PATCH(request: NextRequest) {
     }
 
     // 요청 상태 업데이트 (트레이너 알림 생성 포함)
-    console.log('[member-requests-patch] Attempting to update request status and create trainer notification')
+    apiLogger.info('Attempting to update request status and create trainer notification', {
+      requestId,
+      newStatus: status
+    })
     
     try {
       // mockDataStore의 updateRequestStatus는 이미 트레이너 알림 생성을 포함하고 있음
       const updatedRequest = mockDataStore.updateRequestStatus(requestId, status)
       
       if (!updatedRequest) {
-        console.error('[member-requests-patch] Failed to update request status - updateRequestStatus returned null')
+        apiLogger.error('Failed to update request status - updateRequestStatus returned null')
         return NextResponse.json(
           { error: 'Failed to update request status' },
           { status: 500 }
         )
       }
       
-      console.log('[member-requests-patch] Request status updated successfully')
-      console.log('[member-requests-patch] Trainer notification should have been created automatically')
-      
-      // 개발 환경 로깅
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[member-requests-patch] Request status updated successfully:')
-        console.log('- Request ID:', requestId)
-        console.log('- New status:', status)
-        console.log('- Member Clerk ID:', currentUser.id)
-        console.log('- Member email:', currentUserEmail)
-        console.log('- Trainer ID:', updatedRequest.trainerId)
-        console.log('- Updated at:', updatedRequest.updatedAt)
-        
-        // 트레이너 알림이 생성되었는지 확인
-        if (status === 'approved') {
-          console.log('[member-requests-patch] Checking if trainer notification was created...')
-          const trainerNotifications = mockDataStore.getTrainerNotifications(updatedRequest.trainerId)
-          const recentNotifications = trainerNotifications.filter(n => 
-            new Date(n.createdAt).getTime() > new Date(updatedRequest.updatedAt).getTime() - 5000 // 5초 내
-          )
-          console.log('[member-requests-patch] Recent trainer notifications:', recentNotifications.length)
-        }
-      }
+      apiLogger.info('Request status updated successfully', {
+        requestId,
+        newStatus: status,
+        trainerId: updatedRequest.trainerId,
+        updatedAt: updatedRequest.updatedAt
+      })
 
       return NextResponse.json({
         success: true,
@@ -270,7 +217,11 @@ export async function PATCH(request: NextRequest) {
       })
       
     } catch (updateError) {
-      console.error('[member-requests-patch] Error during request status update:', updateError)
+      apiLogger.error('Error during request status update', {
+        error: updateError instanceof Error ? updateError.message : 'Unknown error',
+        requestId,
+        status
+      })
       
       // 트랜잭션 실패 시 상세 에러 정보 제공
       return NextResponse.json(
@@ -283,7 +234,10 @@ export async function PATCH(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('Error updating trainer request:', error)
+    apiLogger.error('Error updating trainer request', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
     
     if (error instanceof Error && error.message.includes('unauthorized')) {
       return NextResponse.json(

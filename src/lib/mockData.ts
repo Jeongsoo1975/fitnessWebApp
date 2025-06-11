@@ -1,6 +1,11 @@
 // 개발 환경용 임시 데이터 저장소
 // 실제 데이터베이스가 없을 때 사용
 
+import { createApiLogger } from './logger'
+
+// API별 로거 생성
+const dataLogger = createApiLogger('mockDataStore')
+
 interface MockSchedule {
   id: string
   title: string
@@ -204,6 +209,80 @@ export const mockDataStore = {
     })
   },
 
+  // === 정규화된 사용자 매칭 시스템 ===
+  
+  /**
+   * 정규화된 사용자 ID 매칭 로직
+   * 우선순위: 1) Clerk ID 정확 매칭, 2) 이메일 정확 매칭, 3) 이메일 사용자명 매칭
+   */
+  findMemberRequests: (searchCriteria: { clerkId?: string; email?: string }) => {
+    const { clerkId, email } = searchCriteria
+    
+    dataLogger.debug('Starting normalized member request search', { 
+      clerkId, 
+      email,
+      totalRequests: mockTrainerMemberRequests.length
+    })
+    
+    let matchedRequests: MockTrainerMemberRequest[] = []
+    let matchMethod = 'none'
+    
+    // 1단계: Clerk ID 정확 매칭 (최우선)
+    if (clerkId) {
+      matchedRequests = mockTrainerMemberRequests.filter(request => 
+        request.memberId === clerkId
+      )
+      if (matchedRequests.length > 0) {
+        matchMethod = 'clerk-id-exact'
+        dataLogger.info('Found requests by Clerk ID exact match', {
+          clerkId,
+          matchCount: matchedRequests.length
+        })
+        return { requests: matchedRequests, method: matchMethod }
+      }
+    }
+    
+    // 2단계: 이메일 정확 매칭
+    if (email) {
+      matchedRequests = mockTrainerMemberRequests.filter(request => 
+        request.memberId === email
+      )
+      if (matchedRequests.length > 0) {
+        matchMethod = 'email-exact'
+        dataLogger.info('Found requests by email exact match', {
+          email,
+          matchCount: matchedRequests.length
+        })
+        return { requests: matchedRequests, method: matchMethod }
+      }
+    }
+    
+    // 3단계: 이메일 사용자명 매칭 (예: user@gmail.com과 user@google.com)
+    if (email && email.includes('@')) {
+      const emailUsername = email.split('@')[0]
+      matchedRequests = mockTrainerMemberRequests.filter(request => {
+        if (request.memberId.includes('@')) {
+          const requestUsername = request.memberId.split('@')[0]
+          return requestUsername === emailUsername
+        }
+        return false
+      })
+      if (matchedRequests.length > 0) {
+        matchMethod = 'email-username'
+        dataLogger.info('Found requests by email username match', {
+          email,
+          emailUsername,
+          matchCount: matchedRequests.length
+        })
+        return { requests: matchedRequests, method: matchMethod }
+      }
+    }
+    
+    // 매칭 실패
+    dataLogger.warn('No matching requests found', { clerkId, email })
+    return { requests: [], method: 'no-match' }
+  },
+
   addMemberRequest: (request: Omit<MockTrainerMemberRequest, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newRequest: MockTrainerMemberRequest = {
       ...request,
@@ -214,77 +293,65 @@ export const mockDataStore = {
     }
     mockTrainerMemberRequests.push(newRequest)
     
-    // 디버깅: 추가된 요청 로깅
-    console.log('🔥 [addMemberRequest] NEW REQUEST ADDED:')
-    console.log('- Request ID:', newRequest.id)
-    console.log('- Trainer ID:', newRequest.trainerId)
-    console.log('- Member ID:', newRequest.memberId)
-    console.log('- Status:', newRequest.status)
-    console.log('- Message:', newRequest.message)
-    console.log('- Total requests in system:', mockTrainerMemberRequests.length)
-    console.log('- All requests:', mockTrainerMemberRequests.map(r => ({ id: r.id, trainerId: r.trainerId, memberId: r.memberId, status: r.status })))
+    // 개선된 로깅
+    dataLogger.info('New member request added', {
+      requestId: newRequest.id,
+      trainerId: newRequest.trainerId,
+      memberId: newRequest.memberId,
+      status: newRequest.status,
+      hasMessage: !!newRequest.message,
+      totalRequestsInSystem: mockTrainerMemberRequests.length
+    })
     
     return newRequest
   },
-
   getMemberRequests: (memberId: string) => {
-    console.log('[getMemberRequests] Searching for memberId:', memberId)
-    const directMatches = mockTrainerMemberRequests.filter(request => request.memberId === memberId)
-    console.log('[getMemberRequests] Direct matches found:', directMatches.length)
-    return directMatches
+    dataLogger.debug('getMemberRequests called', { memberId })
+    
+    // memberId가 이메일 형태인지 확인
+    const isEmail = memberId.includes('@')
+    
+    const result = mockDataStore.findMemberRequests({
+      clerkId: isEmail ? undefined : memberId,
+      email: isEmail ? memberId : undefined
+    })
+    
+    dataLogger.info('getMemberRequests result', {
+      memberId,
+      method: result.method,
+      matchCount: result.requests.length
+    })
+    
+    return result.requests
   },
 
-  // 이메일로도 요청 검색 가능 - 향상된 매칭 로직
   getMemberRequestsByEmail: (email: string) => {
-    console.log('[getMemberRequestsByEmail] Searching for email:', email)
+    dataLogger.debug('getMemberRequestsByEmail called', { email })
     
-    // 정확한 이메일 매칭
-    const exactMatches = mockTrainerMemberRequests.filter(request => 
-      request.memberId === email
-    )
-    console.log('[getMemberRequestsByEmail] Exact email matches:', exactMatches.length)
+    const result = mockDataStore.findMemberRequests({ email })
     
-    if (exactMatches.length > 0) {
-      return exactMatches
-    }
-    
-    // 이메일 사용자명 부분으로 매칭 (예: teamqc0508@gmail.com과 teamqc0508@google.com)
-    const emailUsername = email.split('@')[0]
-    const usernameMatches = mockTrainerMemberRequests.filter(request => {
-      if (request.memberId.includes('@')) {
-        const requestUsername = request.memberId.split('@')[0]
-        return requestUsername === emailUsername
-      }
-      return false
+    dataLogger.info('getMemberRequestsByEmail result', {
+      email,
+      method: result.method,
+      matchCount: result.requests.length
     })
-    console.log('[getMemberRequestsByEmail] Username matches:', usernameMatches.length, 'for username:', emailUsername)
     
-    if (usernameMatches.length > 0) {
-      console.log('[getMemberRequestsByEmail] Found matches by username:', usernameMatches)
-      return usernameMatches
-    }
-    
-    // 부분 문자열 매칭 (폴백)
-    const partialMatches = mockTrainerMemberRequests.filter(request => 
-      request.memberId.includes(email) || email.includes(request.memberId)
-    )
-    console.log('[getMemberRequestsByEmail] Partial matches:', partialMatches.length)
-    
-    return partialMatches
+    return result.requests
   },
 
   // 디버깅용: 모든 요청 조회
   getAllRequests: () => {
-    console.log('🔥 [getAllRequests] Current system state:')
-    console.log('- Total requests:', mockTrainerMemberRequests.length)
-    console.log('- Requests details:', mockTrainerMemberRequests.map(r => ({
-      id: r.id,
-      trainerId: r.trainerId,
-      memberId: r.memberId,
-      status: r.status,
-      message: r.message?.substring(0, 50) + '...',
-      createdAt: r.createdAt
-    })))
+    dataLogger.debug('getAllRequests called', {
+      totalRequests: mockTrainerMemberRequests.length,
+      requestsSummary: mockTrainerMemberRequests.map(r => ({
+        id: r.id,
+        trainerId: r.trainerId,
+        memberId: r.memberId,
+        status: r.status,
+        createdAt: r.createdAt
+      }))
+    })
+    
     return [...mockTrainerMemberRequests]
   },
 
