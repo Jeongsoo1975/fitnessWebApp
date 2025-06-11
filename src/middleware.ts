@@ -5,17 +5,145 @@ import { NextResponse } from 'next/server'
 const isTrainerRoute = createRouteMatcher(['/trainer(.*)'])
 const isMemberRoute = createRouteMatcher(['/member(.*)'])
 const isProtectedRoute = createRouteMatcher([
-  '/', // 1. 루트 경로 추가 - 인증된 사용자의 대시보드 리디렉션을 위해
+  '/', // Root path for dashboard redirection
   '/trainer(.*)', 
   '/member(.*)', 
   '/profile(.*)',
-  '/settings(.*)'
+  '/settings(.*)',
+  '/workout(.*)',
+  '/schedule(.*)'
 ])
+
+// User cache for performance optimization
+interface CachedUserData {
+  userId: string
+  role: string | null
+  profileComplete: boolean
+  timestamp: number
+  ttl: number // Time to live in milliseconds
+}
+
+// Simple in-memory cache (Edge Runtime compatible)
+const userCache = new Map<string, CachedUserData>()
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+const MAX_CACHE_SIZE = 1000
+
+// Cache management functions
+function getCachedUser(userId: string): CachedUserData | null {
+  const cached = userCache.get(userId)
+  
+  if (!cached) return null
+  
+  // Check if cache is expired
+  if (Date.now() > cached.timestamp + cached.ttl) {
+    userCache.delete(userId)
+    return null
+  }
+  
+  return cached
+}
+
+function setCachedUser(userId: string, role: string | null, profileComplete: boolean) {
+  // Simple LRU - remove oldest entries if cache is full
+  if (userCache.size >= MAX_CACHE_SIZE) {
+    const oldestEntry = Array.from(userCache.entries())
+      .sort(([,a], [,b]) => a.timestamp - b.timestamp)[0]
+    
+    if (oldestEntry) {
+      userCache.delete(oldestEntry[0])
+    }
+  }
+  
+  userCache.set(userId, {
+    userId,
+    role,
+    profileComplete,
+    timestamp: Date.now(),
+    ttl: CACHE_TTL
+  })
+}
+
+// Fetch user data from API
+async function fetchUserData(userId: string, request: Request): Promise<{
+  role: string | null
+  profileComplete: boolean
+} | null> {
+  try {
+    // Create internal API request URL
+    const apiUrl = new URL('/api/user/role', request.url)
+    
+    // Create new request with Clerk auth headers
+    const apiRequest = new Request(apiUrl.toString(), {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-clerk-user-id': userId,
+        'x-forwarded-host': request.headers.get('host') || '',
+        'x-forwarded-proto': request.headers.get('x-forwarded-proto') || 'https'
+      }
+    })
+
+    const response = await fetch(apiRequest)
+    
+    if (!response.ok) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[MIDDLEWARE] API call failed: ${response.status}`)
+      }
+      return null
+    }
+
+    const data = await response.json()
+    
+    if (!data.success || !data.data) {
+      return null
+    }
+
+    const role = data.data.role || null
+    
+    // Check profile completeness if role exists
+    let profileComplete = false
+    
+    if (role) {
+      try {
+        const profileApiUrl = new URL('/api/user/profile', request.url)
+        const profileRequest = new Request(profileApiUrl.toString(), {
+          method: 'POST', // POST for completeness check
+          headers: {
+            'Content-Type': 'application/json',
+            'x-clerk-user-id': userId,
+            'x-forwarded-host': request.headers.get('host') || '',
+            'x-forwarded-proto': request.headers.get('x-forwarded-proto') || 'https'
+          }
+        })
+
+        const profileResponse = await fetch(profileRequest)
+        
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json()
+          profileComplete = profileData.data?.isComplete || false
+        }
+      } catch (profileError) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[MIDDLEWARE] Profile check failed:`, profileError)
+        }
+        // Continue without profile check
+      }
+    }
+
+    return { role, profileComplete }
+
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[MIDDLEWARE] fetchUserData error:`, error)
+    }
+    return null
+  }
+}
 
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth()
   
-  // 개발 환경에서만 상세 로깅
+  // Development logging
   if (process.env.NODE_ENV === 'development') {
     console.log(`[MIDDLEWARE] ${req.method} ${req.nextUrl.pathname}`)
     console.log(`[MIDDLEWARE] userId: ${userId ? 'exists' : 'null'}`)
@@ -32,25 +160,106 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Redirect to sign-in if not authenticated
   if (!userId) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[MIDDLEWARE] No userId, redirecting to sign-in`)
+    }
     const signInUrl = new URL('/sign-in', req.url)
     signInUrl.searchParams.set('redirect_url', req.url)
     return NextResponse.redirect(signInUrl)
   }
 
-  // 루트 경로 접근 시 onboarding으로 리디렉션
+  // Handle root path - always redirect to onboarding for role/profile check
   if (req.nextUrl.pathname === '/') {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[MIDDLEWARE] Root path, redirecting to onboarding`)
+    }
     return NextResponse.redirect(new URL('/onboarding', req.url))
   }
 
-  // 대시보드 경로는 일단 허용 (클라이언트에서 역할 확인)
-  if (isTrainerRoute(req) || isMemberRoute(req)) {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[MIDDLEWARE] Allowing dashboard route - role will be checked client-side`)
-    }
+  // Skip API routes and static files from role checking
+  if (req.nextUrl.pathname.startsWith('/api/') || 
+      req.nextUrl.pathname.startsWith('/_next/') ||
+      req.nextUrl.pathname.includes('.')) {
     return NextResponse.next()
   }
 
-  return NextResponse.next()
+  // Get user data (cached or fresh)
+  let userData: CachedUserData | null = getCachedUser(userId)
+  
+  if (!userData) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[MIDDLEWARE] Cache miss, fetching user data for ${userId}`)
+    }
+    
+    const fetchedData = await fetchUserData(userId, req)
+    
+    if (fetchedData) {
+      setCachedUser(userId, fetchedData.role, fetchedData.profileComplete)
+      userData = getCachedUser(userId)
+    }
+  } else if (process.env.NODE_ENV === 'development') {
+    console.log(`[MIDDLEWARE] Cache hit for ${userId}`)
+  }
+
+  // If we couldn't get user data, allow but log warning
+  if (!userData) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[MIDDLEWARE] Could not fetch user data, allowing with warning`)
+    }
+    // Allow access but they'll likely hit auth issues on the page
+    return NextResponse.next()
+  }
+
+  const { role, profileComplete } = userData
+
+  // If user has no role, redirect to onboarding
+  if (!role) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[MIDDLEWARE] No role assigned, redirecting to onboarding`)
+    }
+    return NextResponse.redirect(new URL('/onboarding', req.url))
+  }
+
+  // If profile is incomplete, redirect to onboarding (except if already on onboarding)
+  if (!profileComplete && !req.nextUrl.pathname.startsWith('/onboarding')) {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[MIDDLEWARE] Profile incomplete, redirecting to onboarding`)
+    }
+    return NextResponse.redirect(new URL('/onboarding', req.url))
+  }
+
+  // Role-based route protection
+  if (isTrainerRoute(req) && role !== 'trainer') {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[MIDDLEWARE] Non-trainer accessing trainer route, redirecting`)
+    }
+    
+    // Redirect to appropriate dashboard
+    const redirectUrl = role === 'member' ? '/member/dashboard' : '/onboarding'
+    return NextResponse.redirect(new URL(redirectUrl, req.url))
+  }
+
+  if (isMemberRoute(req) && role !== 'member') {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[MIDDLEWARE] Non-member accessing member route, redirecting`)
+    }
+    
+    // Redirect to appropriate dashboard
+    const redirectUrl = role === 'trainer' ? '/trainer/dashboard' : '/onboarding'
+    return NextResponse.redirect(new URL(redirectUrl, req.url))
+  }
+
+  // All checks passed, allow access
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[MIDDLEWARE] Access granted for ${role} to ${req.nextUrl.pathname}`)
+  }
+
+  // Add user info to headers for downstream use
+  const response = NextResponse.next()
+  response.headers.set('x-user-role', role)
+  response.headers.set('x-user-profile-complete', profileComplete.toString())
+  
+  return response
 })
 
 export const config = {
