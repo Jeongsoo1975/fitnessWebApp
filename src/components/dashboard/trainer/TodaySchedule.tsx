@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { Suspense } from 'react'
-import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 
 interface Schedule {

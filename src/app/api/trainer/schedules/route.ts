@@ -16,8 +16,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const scheduleData = await request.json() as any
-
     // TODO: Replace with actual D1 database insert
     console.log('[trainer-schedules] POST - Schedule created by trainer:', currentUser.id)
 

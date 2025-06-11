@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useCallback } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -39,24 +39,8 @@ function OnboardingContent() {
   // URL parameter로 강제 onboarding 모드 확인
   const forceOnboarding = searchParams.get('force') === 'true'
 
-  // Check authentication status and redirect if necessary
-  useEffect(() => {
-    if (!isLoaded) return // Clerk가 로딩 중이면 대기
-    
-    if (!isSignedIn) {
-      router.push('/sign-up')
-      return
-    }
-
-    // forceOnboarding이 true면 기존 역할 무시하고 onboarding 진행
-    if (forceOnboarding) return
-
-    // Check if user already has complete profile
-    checkUserProfileStatus()
-  }, [isLoaded, isSignedIn, user, router, forceOnboarding])
-
   // Check user profile status from API
-  const checkUserProfileStatus = async () => {
+  const checkUserProfileStatus = useCallback(async () => {
     try {
       const response = await fetch('/api/user/role', {
         method: 'GET',
@@ -90,10 +74,26 @@ function OnboardingContent() {
           }
         }
       }
-    } catch (error) {
+    } catch {
       console.log('Profile status check failed, proceeding with onboarding')
     }
-  }
+  }, [router])
+
+  // Check authentication status and redirect if necessary
+  useEffect(() => {
+    if (!isLoaded) return // Clerk가 로딩 중이면 대기
+    
+    if (!isSignedIn) {
+      router.push('/sign-up')
+      return
+    }
+
+    // forceOnboarding이 true면 기존 역할 무시하고 onboarding 진행
+    if (forceOnboarding) return
+
+    // Check if user already has complete profile
+    checkUserProfileStatus()
+  }, [isLoaded, isSignedIn, user, router, forceOnboarding, checkUserProfileStatus])
 
   // Prevent browser back button during onboarding
   useEffect(() => {

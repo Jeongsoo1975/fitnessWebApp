@@ -284,7 +284,7 @@ export default function MemberNotificationManager() {
                     {/* 요청 메시지 */}
                     {request.message && (
                       <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                        <p className="text-sm text-gray-700">"{request.message}"</p>
+                        <p className="text-sm text-gray-700">&quot;{request.message}&quot;</p>
                       </div>
                     )}
 

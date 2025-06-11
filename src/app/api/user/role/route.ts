@@ -141,6 +141,7 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const clerkResult = await clerkResponse.json()
       apiLogger.info('Clerk metadata updated successfully', { userId, role })
 

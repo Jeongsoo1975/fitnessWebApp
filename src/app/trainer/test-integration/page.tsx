@@ -24,8 +24,8 @@ export default async function TestIntegrationPage() {
               <h3 className="font-medium text-blue-800 mb-2">1. 트레이너 역할 테스트</h3>
               <ul className="text-sm text-blue-700 space-y-1">
                 <li>• <a href="/trainer/members" className="underline hover:text-blue-900">회원 관리 페이지</a>로 이동</li>
-                <li>• "회원 검색" 탭에서 회원 검색 (예: "김", "이", "박" 등)</li>
-                <li>• 원하는 회원에게 "등록 요청" 버튼 클릭</li>
+                <li>• &quot;회원 검색&quot; 탭에서 회원 검색 (예: &quot;김&quot;, &quot;이&quot;, &quot;박&quot; 등)</li>
+                <li>• 원하는 회원에게 &quot;등록 요청&quot; 버튼 클릭</li>
                 <li>• 메시지 작성 후 요청 전송</li>
               </ul>
             </div>
@@ -33,17 +33,17 @@ export default async function TestIntegrationPage() {
             <div className="bg-white rounded-lg p-4 border border-blue-100">
               <h3 className="font-medium text-blue-800 mb-2">2. 회원 역할 테스트</h3>
               <ul className="text-sm text-blue-700 space-y-1">
-                <li>• 우상단 역할 전환 버튼으로 "회원"으로 변경</li>
+                <li>• 우상단 역할 전환 버튼으로 &quot;회원&quot;으로 변경</li>
                 <li>• <a href="/member/notifications" className="underline hover:text-blue-900">알림 페이지</a>로 이동</li>
                 <li>• 받은 트레이너 요청 확인</li>
-                <li>• "승인" 또는 "거절" 버튼 클릭</li>
+                <li>• &quot;승인&quot; 또는 &quot;거절&quot; 버튼 클릭</li>
               </ul>
             </div>
             
             <div className="bg-white rounded-lg p-4 border border-blue-100">
               <h3 className="font-medium text-blue-800 mb-2">3. 스케줄 연동 테스트</h3>
               <ul className="text-sm text-blue-700 space-y-1">
-                <li>• 다시 "트레이너"로 역할 전환</li>
+                <li>• 다시 &quot;트레이너&quot;로 역할 전환</li>
                 <li>• <a href="/trainer/schedule" className="underline hover:text-blue-900">일정 관리 페이지</a>로 이동</li>
                 <li>• 새 일정 추가 시 승인된 회원이 드롭다운에 표시되는지 확인</li>
                 <li>• PT 세션 일정 생성 테스트</li>

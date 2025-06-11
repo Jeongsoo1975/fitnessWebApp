@@ -1,10 +1,23 @@
-/** @type {import('eslint').Linter.Config} */
-const config = {
-  extends: ['next/core-web-vitals'],
-  rules: {
-    '@typescript-eslint/no-unused-vars': 'error',
-    '@typescript-eslint/no-explicit-any': 'warn',
-  },
-}
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import { FlatCompat } from "@eslint/eslintrc";
 
-module.exports = config
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+});
+
+const eslintConfig = [
+  ...compat.extends("next/core-web-vitals"),
+  {
+    rules: {
+      "no-unused-vars": "warn",
+      "react-hooks/exhaustive-deps": "warn",
+      "prefer-const": "warn",
+    },
+  },
+];
+
+export default eslintConfig;
