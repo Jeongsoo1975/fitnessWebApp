@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@clerk/nextjs'
+import { useSearchParams } from 'next/navigation'
 import MemberSearchComponent from './MemberSearchComponent'
 
 interface TrainerMember {
@@ -14,7 +15,12 @@ interface TrainerMember {
 
 export default function TrainerMemberManager() {
   const { getToken } = useAuth()
-  const [activeTab, setActiveTab] = useState<'my-members' | 'search'>('my-members')
+  const searchParams = useSearchParams()
+  
+  // URL 쿼리 파라미터에서 초기 탭 설정
+  const initialTab = searchParams.get('tab') === 'search' ? 'search' : 'my-members'
+  const [activeTab, setActiveTab] = useState<'my-members' | 'search'>(initialTab)
+  
   const [myMembers, setMyMembers] = useState<TrainerMember[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)

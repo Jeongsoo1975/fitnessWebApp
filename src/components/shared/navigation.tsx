@@ -7,6 +7,7 @@ import { UserButton } from '@clerk/nextjs'
 import { useUserRole } from '@/hooks/useAuth'
 import MobileNavigation from './MobileNavigation'
 import NotificationBell from '@/components/notifications/NotificationBell'
+import { useTrainerNotifications } from '@/hooks/useTrainerNotifications'
 
 interface NavigationItem {
   name: string
@@ -22,6 +23,15 @@ const trainerNavigation: NavigationItem[] = [
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+      </svg>
+    ),
+  },
+  {
+    name: '알림',
+    href: '/trainer/notifications',
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM15 17H9a4 4 0 01-4-4V5a2 2 0 012-2h14a2 2 0 012 2v6a4 4 0 01-4 4h-6z" />
       </svg>
     ),
   },
@@ -262,13 +272,11 @@ export default function Navigation({ children }: NavigationProps) {
               </h1>
             </div>
             <div className="ml-4 flex items-center md:ml-6 space-x-3">
-              {/* 회원 전용 알림 아이콘 */}
-              {role === 'member' && (
-                <div>
-                  <span className="text-xs text-gray-500 mr-2">알림:</span>
-                  <NotificationBell size="md" />
-                </div>
-              )}
+              {/* 역할별 알림 아이콘 */}
+              <div>
+                <span className="text-xs text-gray-500 mr-2">알림:</span>
+                <NotificationBell size="md" userRole={role} />
+              </div>
               
               {/* 개발용 역할 전환 버튼 */}
               {process.env.NODE_ENV === 'development' && (

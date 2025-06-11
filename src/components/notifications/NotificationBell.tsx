@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation'
 import { useNotifications } from '@/hooks/useNotifications'
+import { useTrainerNotifications } from '@/hooks/useTrainerNotifications'
+import { useUserRole } from '@/hooks/useAuth'
 import { BellIcon } from '@heroicons/react/24/outline'
 import { BellIcon as BellSolidIcon } from '@heroicons/react/24/solid'
 
@@ -9,18 +11,37 @@ interface NotificationBellProps {
   size?: 'sm' | 'md' | 'lg'
   showLabel?: boolean
   className?: string
+  userRole?: 'trainer' | 'member' // 명시적으로 역할 지정 가능
 }
 
 export default function NotificationBell({ 
   size = 'md', 
   showLabel = false, 
-  className = '' 
+  className = '',
+  userRole 
 }: NotificationBellProps) {
   const router = useRouter()
-  const { pendingCount, isLoading } = useNotifications()
+  const { role } = useUserRole()
+  
+  // 실제 사용할 역할 결정 (props가 우선, 없으면 현재 사용자 역할)
+  const currentRole = userRole || role
+  
+  // 역할에 따라 적절한 훅 사용
+  const memberNotifications = useNotifications()
+  const trainerNotifications = useTrainerNotifications()
+  
+  const { pendingCount, isLoading } = currentRole === 'trainer' 
+    ? { pendingCount: trainerNotifications.unreadCount, isLoading: trainerNotifications.isLoading }
+    : { pendingCount: memberNotifications.pendingCount, isLoading: memberNotifications.isLoading }
 
   // 디버깅 로그
-  console.log('[NotificationBell] Rendering with:', { pendingCount, isLoading })
+  console.log('[NotificationBell] Rendering with:', { 
+    currentRole, 
+    pendingCount, 
+    isLoading,
+    userRole,
+    role 
+  })
 
   const sizeClasses = {
     sm: 'w-5 h-5',
@@ -35,8 +56,9 @@ export default function NotificationBell({
   }
 
   const handleClick = () => {
-    console.log('[NotificationBell] Clicked, navigating to notifications')
-    router.push('/member/notifications')
+    const targetPath = currentRole === 'trainer' ? '/trainer/notifications' : '/member/notifications'
+    console.log('[NotificationBell] Clicked, navigating to:', targetPath)
+    router.push(targetPath)
   }
 
   const hasPendingNotifications = pendingCount > 0

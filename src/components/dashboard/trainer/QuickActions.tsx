@@ -1,5 +1,7 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
+
 interface QuickAction {
   id: string
   label: string
@@ -9,6 +11,8 @@ interface QuickAction {
 }
 
 export default function QuickActions() {
+  const router = useRouter()
+
   const actions: QuickAction[] = [
     {
       id: 'new-member',
@@ -19,7 +23,10 @@ export default function QuickActions() {
         </svg>
       ),
       iconColor: 'text-blue-500',
-      onClick: () => console.log('새 회원 등록 클릭')
+      onClick: () => {
+        console.log('새 회원 등록 클릭 - 회원 관리 페이지로 이동')
+        router.push('/trainer/members?tab=search')
+      }
     },
     {
       id: 'workout-plan',
@@ -30,7 +37,10 @@ export default function QuickActions() {
         </svg>
       ),
       iconColor: 'text-green-500',
-      onClick: () => console.log('운동 계획 작성 클릭')
+      onClick: () => {
+        console.log('운동 계획 작성 클릭')
+        router.push('/trainer/schedule')
+      }
     },
     {
       id: 'progress-report',
@@ -41,7 +51,10 @@ export default function QuickActions() {
         </svg>
       ),
       iconColor: 'text-purple-500',
-      onClick: () => console.log('진행 리포트 보기 클릭')
+      onClick: () => {
+        console.log('진행 리포트 보기 클릭')
+        router.push('/trainer/reports')
+      }
     },
     {
       id: 'member-messages',
@@ -52,7 +65,10 @@ export default function QuickActions() {
         </svg>
       ),
       iconColor: 'text-orange-500',
-      onClick: () => console.log('회원 메시지 클릭')
+      onClick: () => {
+        console.log('회원 메시지 클릭')
+        router.push('/trainer/messages')
+      }
     }
   ]
 

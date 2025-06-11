@@ -121,65 +121,13 @@ let mockMembers: MockMemberProfile[] = [
 ]
 
 let mockTrainerMemberRequests: MockTrainerMemberRequest[] = [
-  {
-    id: '1',
-    trainerId: 'user_2yGfgge9dGRBLeuxJSMzElVzite',
-    memberId: '1',
-    status: 'approved',
-    message: '함께 운동하게 되어 기쁩니다!',
-    createdAt: '2025-06-10T09:00:00Z',
-    updatedAt: '2025-06-10T10:00:00Z'
-  },
-  {
-    id: '2',
-    trainerId: 'user_2yGfgge9dGRBLeuxJSMzElVzite',
-    memberId: '5',
-    status: 'approved',
-    message: '건강한 운동 습관을 만들어보세요.',
-    createdAt: '2025-06-10T11:00:00Z',
-    updatedAt: '2025-06-10T12:00:00Z'
-  },
-  {
-    id: '3',
-    trainerId: 'user_2yGfgge9dGRBLeuxJSMzElVzite',
-    memberId: 'user_2yKzIsEWWWgTAK4lorZAT4CUFRC',
-    status: 'pending',
-    message: '안녕하세요! 함께 건강한 운동 습관을 만들어보시겠습니까?',
-    createdAt: '2025-06-11T01:10:00Z',
-    updatedAt: '2025-06-11T01:10:00Z'
-  },
-  {
-    id: '4',
-    trainerId: 'user_2yGfgge9dGRBLeuxJSMzElVzite',
-    memberId: 'teamqc0508@gmail.com',
-    status: 'pending',
-    message: '개인 맞춤 운동 프로그램을 제공해드리겠습니다.',
-    createdAt: '2025-06-11T01:15:00Z',
-    updatedAt: '2025-06-11T01:15:00Z'
-  }
+  // 실제 요청만 남겨두고 샘플 데이터는 제거
+  // 트레이너가 실제로 요청을 보내면 여기에 추가됩니다
 ]
 
 let mockTrainerNotifications: MockTrainerNotification[] = [
-  {
-    id: '1',
-    trainerId: 'user_2yGfgge9dGRBLeuxJSMzElVzite',
-    type: 'member_approved',
-    message: '김 회원님이 PT 요청을 승인했습니다.',
-    memberId: '1',
-    memberName: '김 회원',
-    isRead: false,
-    createdAt: '2025-06-10T10:00:00Z'
-  },
-  {
-    id: '2',
-    trainerId: 'user_2yGfgge9dGRBLeuxJSMzElVzite',
-    type: 'member_approved',
-    message: '정 회원님이 PT 요청을 승인했습니다.',
-    memberId: '5',
-    memberName: '정 회원',
-    isRead: false,
-    createdAt: '2025-06-10T12:00:00Z'
-  }
+  // 실제 알림만 남겨두고 샘플 데이터는 제거
+  // 회원이 승인하면 여기에 알림이 자동으로 추가됩니다
 ]
 
 export const mockDataStore = {

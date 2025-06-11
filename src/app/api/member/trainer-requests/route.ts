@@ -206,38 +206,69 @@ export async function PATCH(request: NextRequest) {
       )
     }
 
-    // 요청 상태 업데이트
-    const updatedRequest = mockDataStore.updateRequestStatus(requestId, status)
+    // 요청 상태 업데이트 (트레이너 알림 생성 포함)
+    console.log('[member-requests-patch] Attempting to update request status and create trainer notification')
     
-    if (!updatedRequest) {
+    try {
+      // mockDataStore의 updateRequestStatus는 이미 트레이너 알림 생성을 포함하고 있음
+      const updatedRequest = mockDataStore.updateRequestStatus(requestId, status)
+      
+      if (!updatedRequest) {
+        console.error('[member-requests-patch] Failed to update request status - updateRequestStatus returned null')
+        return NextResponse.json(
+          { error: 'Failed to update request status' },
+          { status: 500 }
+        )
+      }
+      
+      console.log('[member-requests-patch] Request status updated successfully')
+      console.log('[member-requests-patch] Trainer notification should have been created automatically')
+      
+      // 개발 환경 로깅
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[member-requests-patch] Request status updated successfully:')
+        console.log('- Request ID:', requestId)
+        console.log('- New status:', status)
+        console.log('- Member Clerk ID:', currentUser.id)
+        console.log('- Member email:', currentUserEmail)
+        console.log('- Trainer ID:', updatedRequest.trainerId)
+        console.log('- Updated at:', updatedRequest.updatedAt)
+        
+        // 트레이너 알림이 생성되었는지 확인
+        if (status === 'approved') {
+          console.log('[member-requests-patch] Checking if trainer notification was created...')
+          const trainerNotifications = mockDataStore.getTrainerNotifications(updatedRequest.trainerId)
+          const recentNotifications = trainerNotifications.filter(n => 
+            new Date(n.createdAt).getTime() > new Date(updatedRequest.updatedAt).getTime() - 5000 // 5초 내
+          )
+          console.log('[member-requests-patch] Recent trainer notifications:', recentNotifications.length)
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        request: {
+          id: updatedRequest.id,
+          status: updatedRequest.status,
+          updatedAt: updatedRequest.updatedAt
+        },
+        message: status === 'approved' 
+          ? 'Trainer request approved successfully and trainer has been notified' 
+          : 'Trainer request rejected successfully'
+      })
+      
+    } catch (updateError) {
+      console.error('[member-requests-patch] Error during request status update:', updateError)
+      
+      // 트랜잭션 실패 시 상세 에러 정보 제공
       return NextResponse.json(
-        { error: 'Failed to update request status' },
+        { 
+          error: 'Failed to update request status', 
+          details: updateError instanceof Error ? updateError.message : 'Unknown error during update'
+        },
         { status: 500 }
       )
     }
-
-    // 개발 환경 로깅
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[member-requests-patch] Request status updated successfully:')
-      console.log('- Request ID:', requestId)
-      console.log('- New status:', status)
-      console.log('- Member Clerk ID:', currentUser.id)
-      console.log('- Member email:', currentUserEmail)
-      console.log('- Trainer ID:', updatedRequest.trainerId)
-      console.log('- Updated at:', updatedRequest.updatedAt)
-    }
-
-    return NextResponse.json({
-      success: true,
-      request: {
-        id: updatedRequest.id,
-        status: updatedRequest.status,
-        updatedAt: updatedRequest.updatedAt
-      },
-      message: status === 'approved' 
-        ? 'Trainer request approved successfully' 
-        : 'Trainer request rejected successfully'
-    })
 
   } catch (error) {
     console.error('Error updating trainer request:', error)
