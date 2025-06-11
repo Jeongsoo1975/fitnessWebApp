@@ -125,15 +125,8 @@ let mockMembers: MockMemberProfile[] = [
   }
 ]
 
-let mockTrainerMemberRequests: MockTrainerMemberRequest[] = [
-  // 실제 요청만 남겨두고 샘플 데이터는 제거
-  // 트레이너가 실제로 요청을 보내면 여기에 추가됩니다
-]
-
-let mockTrainerNotifications: MockTrainerNotification[] = [
-  // 실제 알림만 남겨두고 샘플 데이터는 제거
-  // 회원이 승인하면 여기에 알림이 자동으로 추가됩니다
-]
+let mockTrainerMemberRequests: MockTrainerMemberRequest[] = []
+let mockTrainerNotifications: MockTrainerNotification[] = []
 
 export const mockDataStore = {
   // 스케줄 관련
@@ -186,7 +179,6 @@ export const mockDataStore = {
     return mockMembers.find(member => member.id === id)
   },
 
-  // 새로운 회원 추가 함수
   addMember: (member: { email: string; firstName?: string; lastName?: string }) => {
     const newMember: MockMemberProfile = {
       id: Date.now().toString(),
@@ -199,7 +191,6 @@ export const mockDataStore = {
     return newMember
   },
 
-  // 회원 매칭 시스템
   searchMembers: (query: string) => {
     const lowerQuery = query.toLowerCase()
     return mockMembers.filter(member => {
@@ -210,11 +201,6 @@ export const mockDataStore = {
   },
 
   // === 정규화된 사용자 매칭 시스템 ===
-  
-  /**
-   * 정규화된 사용자 ID 매칭 로직
-   * 우선순위: 1) Clerk ID 정확 매칭, 2) 이메일 정확 매칭, 3) 이메일 사용자명 매칭
-   */
   findMemberRequests: (searchCriteria: { clerkId?: string; email?: string }) => {
     const { clerkId, email } = searchCriteria
     
@@ -257,7 +243,7 @@ export const mockDataStore = {
       }
     }
     
-    // 3단계: 이메일 사용자명 매칭 (예: user@gmail.com과 user@google.com)
+    // 3단계: 이메일 사용자명 매칭
     if (email && email.includes('@')) {
       const emailUsername = email.split('@')[0]
       matchedRequests = mockTrainerMemberRequests.filter(request => {
@@ -293,7 +279,6 @@ export const mockDataStore = {
     }
     mockTrainerMemberRequests.push(newRequest)
     
-    // 개선된 로깅
     dataLogger.info('New member request added', {
       requestId: newRequest.id,
       trainerId: newRequest.trainerId,
@@ -305,12 +290,11 @@ export const mockDataStore = {
     
     return newRequest
   },
+
   getMemberRequests: (memberId: string) => {
     dataLogger.debug('getMemberRequests called', { memberId })
     
-    // memberId가 이메일 형태인지 확인
     const isEmail = memberId.includes('@')
-    
     const result = mockDataStore.findMemberRequests({
       clerkId: isEmail ? undefined : memberId,
       email: isEmail ? memberId : undefined
@@ -339,7 +323,6 @@ export const mockDataStore = {
     return result.requests
   },
 
-  // 디버깅용: 모든 요청 조회
   getAllRequests: () => {
     dataLogger.debug('getAllRequests called', {
       totalRequests: mockTrainerMemberRequests.length,
@@ -382,7 +365,6 @@ export const mockDataStore = {
         if (memberInfo) {
           memberName = `${memberInfo.firstName} ${memberInfo.lastName}`
         } else if (request.memberId.includes('@')) {
-          // 이메일인 경우 사용자명을 추출하여 이름 생성
           const username = request.memberId.split('@')[0]
           memberName = `${username.charAt(0).toUpperCase() + username.slice(1)} 회원`
         }
@@ -399,7 +381,7 @@ export const mockDataStore = {
         }
         
         mockTrainerNotifications.push(notification)
-        console.log('[updateRequestStatus] Created trainer notification:', notification)
+        dataLogger.info('Created trainer notification', { notificationId: notification.id })
       }
       
       return mockTrainerMemberRequests[index]
@@ -408,29 +390,16 @@ export const mockDataStore = {
   },
 
   getTrainerMembers: (trainerId: string) => {
-    console.log('[getTrainerMembers] Searching for trainerId:', trainerId)
-    
     const approvedRequests = mockTrainerMemberRequests.filter(
       request => request.trainerId === trainerId && request.status === 'approved'
     )
     
-    console.log('[getTrainerMembers] Found approved requests:', approvedRequests.length)
-    console.log('[getTrainerMembers] Approved requests details:', approvedRequests)
-    
-    if (approvedRequests.length === 0) {
-      console.log('[getTrainerMembers] No approved requests found for trainerId:', trainerId)
-      console.log('[getTrainerMembers] Available trainer IDs in system:', 
-        [...new Set(mockTrainerMemberRequests.map(r => r.trainerId))]
-      )
-    }
-    
     const members = approvedRequests.map(request => {
-      // memberId가 이메일인 경우 해당 이메일을 기반으로 회원 정보 생성
       if (request.memberId.includes('@')) {
         const emailParts = request.memberId.split('@')
         const username = emailParts[0]
         
-        const memberInfo = {
+        return {
           id: request.memberId,
           firstName: username.charAt(0).toUpperCase() + username.slice(1),
           lastName: '회원',
@@ -438,28 +407,16 @@ export const mockDataStore = {
           requestId: request.id,
           isRegistered: true
         }
-        
-        console.log('[getTrainerMembers] Generated member info from email:', memberInfo)
-        return memberInfo
       } else {
-        // 기존 mock 회원 데이터에서 찾기
         const member = mockMembers.find(m => m.id === request.memberId)
-        if (member) {
-          const memberInfo = { ...member, requestId: request.id }
-          console.log('[getTrainerMembers] Found member in mock data:', memberInfo)
-          return memberInfo
-        } else {
-          console.log('[getTrainerMembers] Member not found in mock data for ID:', request.memberId)
-          return null
-        }
+        return member ? { ...member, requestId: request.id } : null
       }
     }).filter(Boolean)
     
-    console.log('[getTrainerMembers] Final members list:', members)
     return members
   },
 
-  // 트레이너 알림 관련 메소드들
+  // 트레이너 알림 관련
   addTrainerNotification: (notification: Omit<MockTrainerNotification, 'id' | 'createdAt'>) => {
     const newNotification: MockTrainerNotification = {
       ...notification,
@@ -467,17 +424,19 @@ export const mockDataStore = {
       createdAt: new Date().toISOString()
     }
     mockTrainerNotifications.push(newNotification)
-    console.log('[addTrainerNotification] Added notification:', newNotification)
+    dataLogger.info('Added trainer notification', { notificationId: newNotification.id })
     return newNotification
   },
 
   getTrainerNotifications: (trainerId: string) => {
-    console.log('[getTrainerNotifications] Searching for trainerId:', trainerId)
     const notifications = mockTrainerNotifications.filter(notification => 
       notification.trainerId === trainerId
     ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     
-    console.log('[getTrainerNotifications] Found notifications:', notifications.length)
+    dataLogger.debug('Retrieved trainer notifications', { 
+      trainerId, 
+      count: notifications.length 
+    })
     return notifications
   },
 
@@ -489,28 +448,76 @@ export const mockDataStore = {
         isRead: true,
         updatedAt: new Date().toISOString()
       }
-      console.log('[markTrainerNotificationAsRead] Marked as read:', id)
+      dataLogger.info('Marked notification as read', { notificationId: id })
       return mockTrainerNotifications[index]
     }
     return null
   },
 
-  // 트레이너의 읽지 않은 알림 개수 조회
   getUnreadTrainerNotificationsCount: (trainerId: string) => {
     const unreadCount = mockTrainerNotifications.filter(notification => 
       notification.trainerId === trainerId && !notification.isRead
     ).length
-    console.log('[getUnreadTrainerNotificationsCount] Unread count for trainer:', trainerId, unreadCount)
+    dataLogger.debug('Unread notifications count', { trainerId, unreadCount })
     return unreadCount
   },
 
-    // 4. 중복 요청 확인
+  markAllTrainerNotificationsAsRead: (trainerId: string) => {
+    let updatedCount = 0
+    mockTrainerNotifications.forEach((notification, index) => {
+      if (notification.trainerId === trainerId && !notification.isRead) {
+        mockTrainerNotifications[index] = {
+          ...notification,
+          isRead: true,
+          updatedAt: new Date().toISOString()
+        }
+        updatedCount++
+      }
+    })
+    dataLogger.info('Marked all notifications as read', { 
+      trainerId, 
+      updatedCount 
+    })
+    return updatedCount
+  },
+
+  // === 데이터 일관성 검증 ===
+  validateDataConsistency: () => {
+    const validationResults = {
+      totalRequests: mockTrainerMemberRequests.length,
+      totalNotifications: mockTrainerNotifications.length,
+      totalMembers: mockMembers.length,
+      issues: [] as string[],
+      summary: {} as any
+    }
+
+    dataLogger.info('Starting data consistency validation')
+
+    // 승인된 요청과 회원 등록 상태 일치 확인
+    const approvedRequests = mockTrainerMemberRequests.filter(r => r.status === 'approved')
+    const registeredMembers = mockMembers.filter(m => m.isRegistered)
+    
+    validationResults.summary.approvedRequests = approvedRequests.length
+    validationResults.summary.registeredMembers = registeredMembers.length
+
+    // 알림과 승인된 요청 연결 확인
+    const approvalNotifications = mockTrainerNotifications.filter(n => n.type === 'member_approved')
+    validationResults.summary.approvalNotifications = approvalNotifications.length
+
+    if (approvedRequests.length !== approvalNotifications.length) {
+      validationResults.issues.push(
+        `승인된 요청(${approvedRequests.length})과 승인 알림(${approvalNotifications.length}) 수가 일치하지 않음`
+      )
+    }
+
+    // 중복 요청 확인
     const duplicateRequests = []
     for (let i = 0; i < mockTrainerMemberRequests.length; i++) {
       for (let j = i + 1; j < mockTrainerMemberRequests.length; j++) {
         const req1 = mockTrainerMemberRequests[i]
         const req2 = mockTrainerMemberRequests[j]
-        if (req1.trainerId === req2.trainerId && req1.memberId === req2.memberId && req1.status === 'pending' && req2.status === 'pending') {
+        if (req1.trainerId === req2.trainerId && req1.memberId === req2.memberId && 
+            req1.status === 'pending' && req2.status === 'pending') {
           duplicateRequests.push({ req1: req1.id, req2: req2.id })
         }
       }
@@ -522,7 +529,7 @@ export const mockDataStore = {
       )
     }
 
-    // 5. 트레이너별 요청 통계
+    // 트레이너별 요청 통계
     const trainerStats = {}
     mockTrainerMemberRequests.forEach(request => {
       if (!trainerStats[request.trainerId]) {
@@ -534,7 +541,6 @@ export const mockDataStore = {
     validationResults.summary.trainerStats = trainerStats
     validationResults.summary.uniqueTrainers = Object.keys(trainerStats).length
 
-    // 검증 결과 로깅
     if (validationResults.issues.length === 0) {
       dataLogger.info('Data consistency validation passed', validationResults.summary)
     } else {
@@ -548,9 +554,6 @@ export const mockDataStore = {
     return validationResults
   },
 
-  /**
-   * 시스템 상태 리포트 생성
-   */
   generateSystemReport: () => {
     const consistencyCheck = mockDataStore.validateDataConsistency()
     
@@ -602,26 +605,5 @@ export const mockDataStore = {
     })
 
     return report
-  },
-
-  // 트레이너의 모든 알림을 읽음 처리
-  markAllTrainerNotificationsAsRead: (trainerId: string) => {
-    let updatedCount = 0
-    mockTrainerNotifications.forEach((notification, index) => {
-      if (notification.trainerId === trainerId && !notification.isRead) {
-        mockTrainerNotifications[index] = {
-          ...notification,
-          isRead: true,
-          updatedAt: new Date().toISOString()
-        }
-        updatedCount++
-      }
-    })
-    dataLogger.info('Marked all trainer notifications as read', { 
-      trainerId, 
-      updatedCount 
-    })
-    return updatedCount
   }
-}
 }
