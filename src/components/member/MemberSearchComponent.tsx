@@ -47,7 +47,7 @@ export default function MemberSearchComponent({ onRequestSent }: MemberSearchCom
         throw new Error('검색에 실패했습니다.')
       }
 
-      const data = await response.json()
+      const data = await response.json() as any
       setSearchResults(data.members || [])
     } catch (error) {
       console.error('Error searching members:', error)

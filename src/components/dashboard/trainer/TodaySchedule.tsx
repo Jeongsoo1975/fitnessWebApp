@@ -50,7 +50,7 @@ function TodayScheduleContent() {
         throw new Error('Failed to load today schedules')
       }
       
-      const data = await response.json()
+      const data = await response.json() as any
       setSchedules(data.schedules || [])
     } catch (error) {
       console.error('Error loading today schedules:', error)

@@ -58,7 +58,7 @@ export default function MemberRequestModal({
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json() as any
         throw new Error(errorData.error || '요청 전송에 실패했습니다.')
       }
 

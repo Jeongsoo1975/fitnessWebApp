@@ -279,7 +279,8 @@ export const validateMobileOptimization = (element: HTMLElement): {
   // Check for tap highlight removal on interactive elements
   const tagName = element.tagName.toLowerCase()
   if (['button', 'a', 'input'].includes(tagName)) {
-    const tapHighlight = getComputedStyle(element).webkitTapHighlightColor
+    const computedStyle = getComputedStyle(element) as any
+    const tapHighlight = computedStyle.webkitTapHighlightColor
     if (tapHighlight !== 'rgba(0, 0, 0, 0)' && tapHighlight !== 'transparent') {
       issues.push('Tap highlight not removed for better touch experience')
     }

@@ -628,5 +628,5 @@ export function createUserService(env: DatabaseEnv): UserService {
   return new UserService(env.DB)
 }
 
-// Export types for external use
-export type { UserCreateInput, UserUpdateInput, UserProfile }
+// Re-export UserRole for external use
+export type { UserRole }

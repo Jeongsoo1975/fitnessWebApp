@@ -77,7 +77,7 @@ export default function ScheduleCalendar({ onAddSchedule }: ScheduleCalendarProp
         }
       })
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json() as any
         // API 데이터를 ScheduleItem 형식으로 변환
         const transformedSchedules = data.workouts.map((workout: any) => ({
           id: workout.id,

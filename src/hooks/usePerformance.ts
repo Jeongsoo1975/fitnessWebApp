@@ -86,7 +86,7 @@ export function useOptimizedTouch() {
     element.style.touchAction = 'manipulation'
     
     // 탭 하이라이트 제거
-    element.style.webkitTapHighlightColor = 'transparent'
+    ;(element.style as any).webkitTapHighlightColor = 'transparent'
     
     // 사용자 선택 방지 (필요한 경우)
     if (element.tagName === 'BUTTON') {
@@ -121,7 +121,7 @@ export function useOptimizedTouch() {
  */
 export function useOptimizedScroll(callback: (scrollY: number) => void, deps: any[] = []) {
   const [isScrolling, setIsScrolling] = useState(false)
-  const rafRef = useRef<number>()
+  const rafRef = useRef<number | null>(null)
   const lastScrollY = useRef(0)
 
   const handleScroll = useCallback(() => {

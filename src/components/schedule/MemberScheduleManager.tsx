@@ -36,7 +36,7 @@ export default function MemberScheduleManager() {
       if (!response.ok) {
         throw new Error('Failed to load schedules')
       }
-      const data = await response.json()
+      const data = await response.json() as any
       setSchedules(data.schedules || [])
     } catch (error) {
       console.error('Error loading schedules:', error)
@@ -161,12 +161,12 @@ function MemberScheduleList({
   }
 
   const getStatusBadge = (status: string) => {
-    const badges = {
+    const badges: { [key: string]: string } = {
       scheduled: 'bg-green-100 text-green-800',
       completed: 'bg-blue-100 text-blue-800',
       cancelled: 'bg-red-100 text-red-800'
     }
-    const labels = {
+    const labels: { [key: string]: string } = {
       scheduled: '예정',
       completed: '완료',
       cancelled: '취소'

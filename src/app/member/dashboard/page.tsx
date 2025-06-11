@@ -68,7 +68,7 @@ export default function MemberDashboard() {
         <p className="text-gray-600 mt-1 text-sm sm:text-base">오늘도 건강한 하루를 시작해보세요.</p>
         {process.env.NODE_ENV === 'development' && (
           <p className="text-xs text-gray-400 mt-2">
-            현재 역할: {localStorage.getItem('userRole') || user?.publicMetadata?.role || 'unknown'}
+            현재 역할: {(localStorage.getItem('userRole') || user?.publicMetadata?.role || 'unknown') as string}
           </p>
         )}
       </div>

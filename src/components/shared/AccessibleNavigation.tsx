@@ -151,7 +151,7 @@ export default function AccessibleNavigation({ userRole, onNavigate }: Accessibl
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen)
-    updateAriaState({ 'aria-expanded': !isMobileMenuOpen })
+    // updateAriaState는 타입이 제한되어 있으므로 직접 aria-expanded는 컴포넌트에서 처리
   }
 
   // 키보드 단축키 설정

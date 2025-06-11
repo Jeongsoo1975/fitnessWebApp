@@ -1,137 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRole, getCurrentUser, searchValidUsers } from '@/lib/auth'
-import { mockDataStore } from '@/lib/mockData'
-import { createApiLogger } from '@/lib/logger'
 
-// Clerk Backend SDK를 사용하여 실제 사용자 검증 수행
-
-// API별 로거 생성
-const apiLogger = createApiLogger('trainer-member-search')
-
-// GET /api/trainer/member-search - 회원 검색 (실제 사용자 검증 포함)
+// GET /api/trainer/member-search - 회원 검색
 export async function GET(request: NextRequest) {
   try {
     // 트레이너 권한 체크
     await requireRole('trainer')
-    apiLogger.info('Trainer role authentication successful for member search')
     
     // 현재 사용자 정보 가져오기
     const currentUser = await getCurrentUser()
     if (!currentUser) {
-      apiLogger.error('Unauthorized - no current user found')
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    // URL 파라미터 추출
-    const url = new URL(request.url)
-    const query = url.searchParams.get('q') || ''
+    const { searchParams } = new URL(request.url)
+    const query = searchParams.get('query')
 
-    apiLogger.info('Member search initiated', { 
-      trainerId: currentUser.id,
-      query: query.length > 0 ? '***' : 'empty', // 쿼리 마스킹
-      queryLength: query.length
-    })
-
-    let searchResults = []
-    let message = ''
-
-    try {
-      // 이메일로 검색하는 경우, 실제 Clerk 사용자 검증 사용
-      if (query.includes('@')) {
-        apiLogger.debug('Email search initiated')
-        
-        // 현재 사용자의 이메일과 다른 경우에만 검색 진행
-        const currentUserEmail = currentUser.emailAddresses?.[0]?.emailAddress
-        
-        if (query === currentUserEmail) {
-          apiLogger.warn('Attempt to search for own email address')
-          message = '자신의 이메일로는 검색할 수 없습니다.'
-        } else {
-          // 실제 Clerk 사용자 검증
-          const validUsers = await searchValidUsers(query)
-          
-          if (validUsers.length > 0) {
-            const user = validUsers[0]
-            searchResults = [{
-              id: user.id,
-              firstName: user.firstName || '사용자',
-              lastName: user.lastName || '',
-              email: user.email,
-              isRegistered: false // 트레이너와 연결되지 않은 상태
-            }]
-            apiLogger.info('Valid user found in email search', { 
-              foundUserId: user.id,
-              hasFirstName: !!user.firstName
-            })
-            message = '검색 결과를 찾았습니다.'
-          } else {
-            apiLogger.warn('No valid user found for email search')
-            message = '해당 이메일로 등록된 사용자를 찾을 수 없습니다. 올바른 이메일 주소인지 확인해주세요.'
-          }
-        }
-      } else {
-        // 이름으로 검색하는 경우 기존 mockData 활용
-        apiLogger.debug('Name search initiated')
-        const mockResults = mockDataStore.searchMembers(query)
-        searchResults = mockResults.filter(member => !member.isRegistered)
-        
-        if (searchResults.length > 0) {
-          message = `${searchResults.length}명의 검색 결과를 찾았습니다.`
-          apiLogger.info('Name search results found', { 
-            totalResults: searchResults.length,
-            unregisteredCount: searchResults.length
-          })
-        } else {
-          message = '검색 결과를 찾을 수 없습니다.'
-          apiLogger.info('No name search results found')
-        }
-      }
-      
-    } catch (error) {
-      apiLogger.error('Search error occurred', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      })
-      searchResults = []
-      message = '검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
-    }
-
-    apiLogger.info('Search completed', {
-      totalResults: searchResults.length,
-      hasMessage: !!message
-    })
-
-    return NextResponse.json({
-      success: true,
-      members: searchResults,
-      count: searchResults.length,
-      message: message || undefined
-    })
-
-  } catch (error) {
-    apiLogger.error('Error searching members', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    })
-    
-    if (error instanceof Error && error.message.includes('unauthorized')) {
+    if (!query) {
       return NextResponse.json(
-        { 
-          error: 'Unauthorized access',
-          message: '권한이 없습니다. 다시 로그인해주세요.'
-        },
-        { status: 403 }
+        { error: 'Search query is required' },
+        { status: 400 }
       )
     }
 
+    console.log('[trainer-member-search] GET - Searching for:', query)
+
+    // Use existing auth validation for email-based search
+    const searchResults = await searchValidUsers(query)
+
+    return NextResponse.json({
+      success: true,
+      results: searchResults,
+      count: searchResults.length
+    })
+
+  } catch (error) {
+    console.error('Error searching members:', error)
+    
     return NextResponse.json(
-      { 
-        error: 'Search failed',
-        message: '회원 검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
-      },
+      { error: 'Failed to search members' },
       { status: 500 }
     )
   }

@@ -160,7 +160,7 @@ export type ClassNameValue = string | undefined | null | false
 export type ClassNames = ClassNameValue | ClassNameValue[]
 
 // Component Factory Types
-export interface ComponentVariants<T = string> {
+export interface ComponentVariants<T extends string = string> {
   [key: string]: {
     [variant in T]?: string
   }

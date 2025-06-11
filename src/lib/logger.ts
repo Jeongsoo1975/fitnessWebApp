@@ -78,7 +78,7 @@ type FileSystemModule = {
   existsSync: (path: string) => boolean
   mkdirSync: (path: string, options?: { recursive?: boolean }) => void
   statSync: (path: string) => { size: number }
-  appendFileSync: (path: string, data: string, encoding?: string) => void
+  appendFileSync: (path: string, data: string, options?: any) => void
   unlinkSync: (path: string) => void
   renameSync: (oldPath: string, newPath: string) => void
 }
@@ -443,7 +443,7 @@ class FileLogger {
       if (!logFilePath) return
       
       const maskedMessage = this.maskSensitiveData(formattedMessage)
-      this.fsModule.appendFileSync(logFilePath, maskedMessage + '\n', 'utf8')
+      this.fsModule.appendFileSync(logFilePath, maskedMessage + '\n', { encoding: 'utf8' })
     } catch (error) {
       console.error('Failed to write to log file:', error)
     }

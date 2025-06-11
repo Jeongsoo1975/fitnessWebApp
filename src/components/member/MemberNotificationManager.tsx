@@ -43,7 +43,7 @@ export default function MemberNotificationManager() {
         throw new Error('요청 목록을 불러오는데 실패했습니다.')
       }
 
-      const data = await response.json()
+      const data = await response.json() as any
       setRequests(data.requests || [])
     } catch (error) {
       console.error('Error loading requests:', error)
@@ -72,7 +72,7 @@ export default function MemberNotificationManager() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json() as any
         throw new Error(errorData.error || '요청 처리에 실패했습니다.')
       }
 

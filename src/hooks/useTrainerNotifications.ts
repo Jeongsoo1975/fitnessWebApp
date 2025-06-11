@@ -55,7 +55,7 @@ export function useTrainerNotifications(): UseTrainerNotificationsReturn {
         throw new Error(`Failed to fetch trainer notifications: ${response.status}`)
       }
 
-      const data = await response.json()
+      const data = await response.json() as any
       console.log('[useTrainerNotifications] API response data:', data)
       
       if (data.success) {
@@ -99,7 +99,7 @@ export function useTrainerNotifications(): UseTrainerNotificationsReturn {
         throw new Error(`Failed to mark notification as read: ${response.status}`)
       }
 
-      const data = await response.json()
+      const data = await response.json() as any
       console.log('[useTrainerNotifications] Mark as read response data:', data)
 
       if (data.success) {
@@ -149,7 +149,7 @@ export function useTrainerNotifications(): UseTrainerNotificationsReturn {
         throw new Error(`Failed to mark all notifications as read: ${response.status}`)
       }
 
-      const data = await response.json()
+      const data = await response.json() as any
       console.log('[useTrainerNotifications] Mark all as read response data:', data)
 
       if (data.success) {

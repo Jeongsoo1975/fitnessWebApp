@@ -97,7 +97,7 @@ export default function OptimizedImage({
 
   return (
     <div 
-      ref={priority ? undefined : targetRef}
+      ref={priority ? undefined : targetRef as React.RefObject<HTMLDivElement>}
       className={`relative overflow-hidden ${className}`}
       style={{ width, height }}
     >

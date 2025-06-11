@@ -49,7 +49,7 @@ export default function TrainerScheduleManager() {
       if (!response.ok) {
         throw new Error('Failed to load members')
       }
-      const data = await response.json()
+      const data = await response.json() as any
       setMembers(data.members || [])
     } catch (error) {
       console.error('Error loading members:', error)
@@ -64,7 +64,7 @@ export default function TrainerScheduleManager() {
       if (!response.ok) {
         throw new Error('Failed to load schedules')
       }
-      const data = await response.json()
+      const data = await response.json() as any
       setSchedules(data.schedules || [])
     } catch (error) {
       console.error('Error loading schedules:', error)
@@ -97,7 +97,7 @@ export default function TrainerScheduleManager() {
         throw new Error('Failed to create schedule')
       }
 
-      const result = await response.json()
+      const result = await response.json() as any
       console.log('Schedule created:', result)
 
       // 모달 닫기
@@ -281,12 +281,12 @@ function TrainerScheduleList({
   }
 
   const getStatusBadge = (status: string) => {
-    const badges = {
+    const badges: { [key: string]: string } = {
       scheduled: 'bg-blue-100 text-blue-800',
       completed: 'bg-green-100 text-green-800',
       cancelled: 'bg-red-100 text-red-800'
     }
-    const labels = {
+    const labels: { [key: string]: string } = {
       scheduled: '예정',
       completed: '완료',
       cancelled: '취소'

@@ -125,7 +125,7 @@ async function handleWorkouts(request: Request, db: any, userId: string | null, 
       return errorResponse('Only trainers can create workouts', 403)
     }
 
-    const data = await request.json()
+    const data = await request.json() as any
     const { memberId, date, title, description, bodyParts, exercises } = data
 
     if (!memberId || !date || !title) {
@@ -157,7 +157,7 @@ async function handleWorkouts(request: Request, db: any, userId: string | null, 
       return errorResponse('Workout ID required', 400)
     }
 
-    const data = await request.json()
+    const data = await request.json() as any
     const { date, title, description, bodyParts, exercises, status } = data
 
     await db.execute(
@@ -227,7 +227,7 @@ async function handleScheduleRequests(request: Request, db: any, userId: string 
       return errorResponse('Only members can create schedule change requests', 403)
     }
 
-    const data = await request.json()
+    const data = await request.json() as any
     const { workoutId, requestedDate, requestedStartTime, requestedEndTime, reason } = data
 
     if (!workoutId) {
@@ -270,7 +270,7 @@ async function handleScheduleRequests(request: Request, db: any, userId: string 
       return errorResponse('Request ID required', 400)
     }
 
-    const data = await request.json()
+    const data = await request.json() as any
     const { status, trainerResponse } = data
 
     if (!status || !['approved', 'rejected'].includes(status)) {
@@ -341,7 +341,7 @@ async function handleMessages(request: Request, db: any, userId: string | null, 
 
   if (method === 'POST') {
     // POST /api/messages - 메시지 전송
-    const data = await request.json()
+    const data = await request.json() as any
     const { receiverId, content, messageType = 'general', workoutId, changeRequestId } = data
 
     if (!receiverId || !content) {
@@ -388,6 +388,7 @@ async function handleNotifications(request: Request, db: any, userId: string | n
     return errorResponse('Unauthorized', 401)
   }
 
+  const url = new URL(request.url)
   const method = request.method
 
   if (method === 'GET') {
@@ -410,7 +411,6 @@ async function handleNotifications(request: Request, db: any, userId: string | n
 
   if (method === 'PUT') {
     // PUT /api/notifications/:id/read - 알림 읽음 처리
-    const url = new URL(request.url)
     const pathParts = url.pathname.split('/').filter(p => p)
     const notificationId = pathParts[2]
     

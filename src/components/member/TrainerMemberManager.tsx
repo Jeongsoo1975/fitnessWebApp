@@ -39,7 +39,7 @@ export default function TrainerMemberManager() {
       })
 
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json() as any
         setMyMembers(data.members || [])
       } else {
         // API 실패 시 더미 데이터 사용

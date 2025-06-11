@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -16,7 +16,8 @@ interface ProfileData {
   fitnessLevel: 'beginner' | 'intermediate' | 'advanced' | null
 }
 
-export default function OnboardingPage() {
+// Search params를 사용하는 컴포넌트를 별도로 분리
+function OnboardingContent() {
   const { user, isLoaded, isSignedIn } = useUser()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -63,7 +64,7 @@ export default function OnboardingPage() {
       })
 
       if (response.ok) {
-        const userData = await response.json()
+        const userData = await response.json() as any
         
         if (userData.data?.role) {
           // User has a role, check profile completeness
@@ -73,7 +74,7 @@ export default function OnboardingPage() {
           })
 
           if (profileResponse.ok) {
-            const profileData = await profileResponse.json()
+            const profileData = await profileResponse.json() as any
             
             if (profileData.data?.isComplete) {
               // Profile is complete, redirect to dashboard
@@ -127,11 +128,11 @@ export default function OnboardingPage() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json() as any
         throw new Error(errorData.message || 'Role assignment failed')
       }
 
-      const result = await response.json()
+      const result = await response.json() as any
       console.log('Role assigned successfully:', result)
 
       // Step 2: Move to profile completion
@@ -180,11 +181,11 @@ export default function OnboardingPage() {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        const errorData = await response.json() as any
         throw new Error(errorData.message || 'Profile update failed')
       }
 
-      const result = await response.json()
+      const result = await response.json() as any
       console.log('Profile updated successfully:', result)
 
       // Step 3: Mark as completed and redirect
@@ -553,4 +554,25 @@ export default function OnboardingPage() {
   }
 
   return null
+}
+
+// Loading fallback component
+function OnboardingLoading() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <p className="mt-4 text-gray-600">로딩 중...</p>
+      </div>
+    </div>
+  )
+}
+
+// Main export with Suspense boundary
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<OnboardingLoading />}>
+      <OnboardingContent />
+    </Suspense>
+  )
 }

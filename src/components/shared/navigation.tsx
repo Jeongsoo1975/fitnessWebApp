@@ -275,7 +275,7 @@ export default function Navigation({ children }: NavigationProps) {
               {/* 역할별 알림 아이콘 */}
               <div>
                 <span className="text-xs text-gray-500 mr-2">알림:</span>
-                <NotificationBell size="md" userRole={role} />
+                {role && <NotificationBell size="md" userRole={role} />}
               </div>
               
               {/* 개발용 역할 전환 버튼 */}

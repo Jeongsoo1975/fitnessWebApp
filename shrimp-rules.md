@@ -2,210 +2,248 @@
 
 ## Project Overview
 
-- **Purpose**: Web-based Personal Training management app for trainers and members
-- **Tech Stack**: Next.js 15, TypeScript, Cloudflare Workers, Cloudflare D1, Clerk Auth
-- **Target Users**: Trainers (PT management) and Members (workout tracking)
-- **Architecture**: Serverless full-stack with edge computing
+**Technology Stack**: Next.js 15 + Cloudflare D1 + Cloudflare Workers + Clerk Auth + TypeScript  
+**Architecture**: Frontend (Next.js App Router) + Backend (Cloudflare Workers) + Database (D1)  
+**Core Functionality**: 트레이너-회원 관계 관리, 운동 스케줄링, PT 세션 관리, 식단 관리
 
-## Project Architecture Rules
+## Critical Development Rules
 
-### Directory Structure
-- Use `src/` as main source directory
-- Create `src/app/` for Next.js App Router pages
-- Create `src/components/` for reusable UI components
-- Create `src/lib/` for utilities and database functions
-- Create `src/types/` for TypeScript type definitions
-- Create `src/hooks/` for custom React hooks
-- Create `workers/` for Cloudflare Workers API endpoints
-- Create `database/` for D1 schema and migrations
+### **🚫 ABSOLUTELY PROHIBITED**
 
-### File Organization
-- Group related files in feature-based folders
-- Separate trainer and member specific components in `src/components/trainer/` and `src/components/member/`
-- Place shared components in `src/components/shared/`
-- Store database schemas in `database/schema.sql`
-- Store API functions in `workers/api/`
+- **Mock 데이터 생성 금지**: 절대로 임시 데이터, 더미 데이터, 샘플 데이터 생성 불가
+- **localStorage 사용 금지**: 프론트엔드에서 데이터 저장 시 localStorage 사용 불가 (Cloudflare D1만 사용)
+- **직접 파일 시스템 접근 금지**: 서버 환경에서 JSON 파일 읽기/쓰기 금지
+- **타입 추측 금지**: TypeScript 타입이 불명확하면 src/types/ 파일들을 확인 후 정확한 타입 사용
+- **API 라우트 임의 생성 금지**: src/app/api/ 구조를 반드시 확인 후 기존 패턴 따라 구현
 
-## Code Standards
+### **📊 Database Operations**
 
-### Naming Conventions
-- Use kebab-case for file names: `workout-schedule.tsx`, `diet-management.tsx`
-- Use PascalCase for React components: `WorkoutSchedule`, `DietManagement`
-- Use camelCase for variables and functions: `getUserWorkouts`, `sessionCount`
-- Use UPPER_SNAKE_CASE for environment variables: `DATABASE_URL`, `CLERK_SECRET_KEY`
+#### **Database Connection Pattern**
+- **MUST USE**: `src/lib/db.ts`의 `DatabaseManager` 클래스만 사용
+- **MUST IMPORT**: `createDatabaseManager` 함수로 DB 인스턴스 생성
+- **Environment Access**: Cloudflare Workers 환경에서 `env.DB` 접근
 
-### TypeScript Rules
-- Define all props interfaces with `Props` suffix: `WorkoutScheduleProps`
-- Create type definitions for all database entities in `src/types/`
-- Use strict type checking for all API responses
-- Define user role types: `type UserRole = 'trainer' | 'member'`
+```typescript
+// ✅ CORRECT Pattern
+import { createDatabaseManager, type DatabaseEnv } from '@/lib/db'
+const dbManager = createDatabaseManager(env)
+const users = await dbManager.query<User>('SELECT * FROM users WHERE role = ?', ['trainer'])
 
-### Component Structure
-- Use functional components with TypeScript
-- Implement proper prop validation with interfaces
-- Use React hooks for state management
-- Separate business logic into custom hooks
+// ❌ WRONG Pattern
+const db = env.DB.prepare('SELECT * FROM users')  // 직접 접근 금지
+```
 
-## Functionality Implementation Standards
+#### **Query Implementation Rules**
+- **Prepared Statements 필수**: SQL 인젝션 방지를 위해 모든 쿼리에 매개변수 바인딩 사용
+- **Type Safety 필수**: 모든 쿼리 결과에 TypeScript 제네릭 타입 지정
+- **Error Handling 필수**: try-catch 블록으로 데이터베이스 에러 처리
 
-### Authentication with Clerk
-- Use Clerk's `useUser()` hook for user data access
-- Implement role-based routing in `src/app/layout.tsx`
-- Store user roles in Clerk's user metadata
-- Create protected routes for trainer-only features
-- Use Clerk's `SignIn`, `SignUp` components without customization
+```typescript
+// ✅ CORRECT Query Pattern
+const result = await dbManager.query<User>(
+  'SELECT * FROM users WHERE clerk_id = ? AND role = ?',
+  [clerkId, 'trainer']
+)
 
-### Database Operations
-- Use Cloudflare D1 for all data storage
-- Create database connection utility in `src/lib/db.ts`
-- Implement prepared statements for all queries
-- Use transactions for multi-table operations
-- Store all schema definitions in `database/schema.sql`
+// ❌ WRONG Query Pattern  
+const result = await dbManager.query(`SELECT * FROM users WHERE clerk_id = '${clerkId}'`)
+```
 
-### API Endpoints
-- Create RESTful endpoints in `workers/api/`
-- Use proper HTTP methods: GET, POST, PUT, DELETE
-- Implement authentication middleware for all protected routes
-- Return consistent JSON response format
-- Handle errors with appropriate HTTP status codes
+#### **Type Definitions**
+- **MUST USE**: `src/lib/db.ts`에 정의된 인터페이스만 사용
+- **JSON Fields**: `specialties`, `goals`, `body_parts`, `exercises` 등은 JSON.parse/stringify 사용
+- **Date Fields**: ISO 8601 문자열 형태로 저장 및 조회
 
-## Framework/Library Usage Standards
+### **🏗️ File Structure Rules**
 
-### Next.js Specific Rules
-- Use App Router exclusively (not Pages Router)
-- Implement Server Components where possible
-- Use Client Components only when interactivity is required
-- Store environment variables in `.env.local`
-- Use Next.js Image component for all images
+#### **API Routes Pattern**
+- **Location**: `src/app/api/[role]/[feature]/route.ts`
+- **Naming**: kebab-case 사용 (예: `member-requests`, `trainer-search`)
+- **Methods**: GET, POST, PUT, DELETE 중 필요한 것만 export
 
-### Cloudflare Integration
-- Deploy frontend to Cloudflare Pages
-- Deploy API to Cloudflare Workers
-- Use Cloudflare D1 for database operations
-- Configure wrangler.toml for deployment settings
-- Use Cloudflare's edge functions for performance
+#### **Components Organization**
+- **Role-based**: `src/components/[role]/` (member, trainer, shared)
+- **Feature-based**: `src/components/[feature]/` (dashboard, schedule, notifications)
+- **Import Path**: `@/components/...` 절대 경로 사용
 
-### UI Components
-- Use Tailwind CSS for all styling
-- Implement responsive design mobile-first
-- Create reusable component library in `src/components/ui/`
-- Use consistent color scheme throughout the app
-- Implement proper loading states and error handling
+#### **Types Location**
+- **Database Types**: `src/lib/db.ts` (DB 스키마와 1:1 매칭)
+- **Business Types**: `src/types/[domain].ts` (user.ts, workout.ts 등)
+- **UI Types**: 컴포넌트 파일 내부에서 정의
 
-## Workflow Standards
+### **🔐 Authentication & Authorization**
 
-### Development Process
-1. **Real Implementation First** - Always start with actual database and API integration
-2. **No Mock Data Phase** - Skip all mock data creation, go directly to real data implementation
-3. **Database-First Approach** - Set up actual D1 database schema before frontend implementation
-4. **Authentication Integration** - Connect Clerk authentication before building protected features
-5. **Test with Real Data** - Use actual user scenarios and real data for testing
-6. **Error Handling Priority** - Implement proper error handling for all real data operations
-7. **Code Quality Focus** - Prioritize working implementations over placeholder solutions
+#### **Clerk Integration Rules**
+- **User Identification**: `clerk_id` 필드로 사용자 매칭 (이메일은 보조 수단)
+- **Role-based Access**: 모든 API에서 사용자 역할 확인 필수
+- **Middleware**: `src/middleware.ts`에서 라우트 보호 설정
 
-### Database Migration Process
-1. Create migration files in `database/migrations/`
-2. Test migrations on local D1 instance
-3. Apply migrations to production D1
-4. Update schema documentation
+```typescript
+// ✅ CORRECT Auth Pattern
+import { auth } from '@clerk/nextjs/server'
+const { userId } = await auth()
+if (!userId) return new Response('Unauthorized', { status: 401 })
 
-## Key File Interaction Standards
+const user = await dbManager.first<User>('SELECT * FROM users WHERE clerk_id = ?', [userId])
+if (user?.role !== 'trainer') return new Response('Forbidden', { status: 403 })
+```
 
-### Critical File Dependencies
-- When modifying `src/types/user.ts`, update `workers/api/auth.ts`
-- When changing database schema in `database/schema.sql`, update `src/types/` accordingly
-- When adding new API endpoints, update `src/lib/api.ts` client functions
-- When modifying user roles, update both Clerk configuration and type definitions
+### **🚨 Error Handling & Logging**
 
-### Multi-file Coordination Requirements
-- Authentication changes require updates to: `src/lib/auth.ts`, `workers/api/auth.ts`, `src/types/user.ts`
-- New database tables require: schema update, type definitions, API endpoints, and client functions
-- UI component changes must maintain consistency across trainer and member interfaces
+#### **Logging Requirements**
+- **Location**: 모든 로그는 `C:\Users\USER\Documents\MCPData\FitnessWEBAPP\logs` 폴더에 저장
+- **Logger**: `src/lib/logger.ts` 사용
+- **Log Levels**: ERROR, WARN, INFO, DEBUG 구분하여 사용
 
-### AI Decision-making Standards
+```typescript
+// ✅ CORRECT Logging Pattern
+import { logger } from '@/lib/logger'
+try {
+  // database operation
+} catch (error) {
+  logger.error('Database operation failed', { error, context: 'user-creation' })
+  return new Response('Internal Server Error', { status: 500 })
+}
+```
 
-### Priority Decision Tree
-1. **Real Implementation Priority**: Always choose real database integration over mock solutions
-2. **Actual Functionality First**: Implement working features that connect to real services
-3. **Security First**: Always implement proper authentication and data validation
-4. **User Role Separation**: Ensure trainers and members see appropriate interfaces
-5. **Data Integrity**: Validate all inputs before database operations
-6. **Performance**: Use edge functions and caching where appropriate
-7. **User Experience**: Implement proper loading states and error messages
+#### **Error Response Pattern**
+- **Client Errors (4xx)**: 사용자 입력 오류, 권한 부족
+- **Server Errors (5xx)**: 데이터베이스 오류, 시스템 오류
+- **Error Messages**: 사용자에게는 안전한 메시지, 로그에는 상세 정보
 
-### Ambiguous Situation Handling
-- **When data is needed**: Always implement real database queries, never create sample data
-- **When testing is required**: Use actual user scenarios with real authentication flow
-- **When unsure about user permissions**: Default to more restrictive access
-- **When choosing between features**: Prioritize MVP requirements from PRD
-- **When implementing UI**: Follow mobile-first responsive design
-- **When in doubt about data structure**: Refer to PRD requirements and implement actual database schema
+### **🔄 Git Workflow**
 
-## Data Management Standards
+#### **Branch Strategy**
+- **Development**: `test` 브랜치에서 모든 개발 진행
+- **Testing**: `test` 브랜치에서 충분한 검증 후 PR 생성
+- **Production**: `master` 브랜치로 머지 (PR을 통해서만)
 
-### Real Data Implementation Priority
-- **Always use actual database operations** - Connect to Cloudflare D1 for all data operations
-- **Implement real API endpoints** - Create actual REST endpoints in workers/api/
-- **Use real authentication flow** - Integrate with Clerk for actual user management
-- **Focus on actual functionality** - Build features that work with real user interactions
-- **Test with real scenarios** - Use actual user workflows for testing
+#### **Commit Rules**
+- **File Operations**: 파일 생성/수정 후 반드시 `git add` + `git commit`
+- **Commit Messages**: `feat:`, `fix:`, `test:`, `refactor:` 등 prefix 사용
+- **Deletion**: `git rm` 사용 후 커밋
 
-### Database Integration Requirements
-- All data must come from Cloudflare D1 database queries
-- Implement proper error handling for database operations
-- Use prepared statements for all database interactions
-- Create actual database schema migrations
-- Test database operations with real data scenarios
+### **🎯 Development Priorities**
 
-## Prohibited Actions
+#### **Primary Focus**
+1. **Database Integration**: Mock 데이터 제거 완료, 실제 DB 연동만 진행
+2. **API Reliability**: 모든 API 엔드포인트 안정성 확보
+3. **Type Safety**: TypeScript 타입 안전성 100% 유지
+4. **Error Recovery**: 견고한 에러 핸들링 및 로깅 시스템
 
-### Strictly Forbidden - Data Management
-- **🚫 ABSOLUTELY NEVER CREATE MOCK, DUMMY, OR SAMPLE DATA** - This is the highest priority rule
-- **🚫 Never generate fake user profiles, workout data, or any simulated content**
-- **🚫 Never create mock API responses or simulated data flows**
-- **🚫 Never use placeholder data in place of real database connections**
-- **🚫 Never create mock stores, mock data files, or temporary data structures**
-- **🚫 Never use example data, test data, or dummy data in implementation**
+#### **Testing Strategy**
+- **Integration Tests**: 전체 플로우 검증 (가입 → 매칭 → 스케줄링)
+- **API Tests**: 각 엔드포인트별 기능 검증
+- **Error Scenario**: 데이터베이스 연결 실패, 권한 오류 등 예외 상황 테스트
 
-### Strictly Forbidden - General Development
-- **Never implement features not specified in PRD** - Stick to documented requirements
-- **Never bypass authentication checks** - All protected routes must verify user identity
-- **Never store sensitive data in plain text** - Use proper encryption and secure storage
-- **Never ignore TypeScript errors** - Fix all type issues before proceeding
-- **Never use Pages Router** - Only use App Router for Next.js routing
-- **Never hardcode configuration values** - Use environment variables for all settings
-- **Never implement features without proper error handling** - All operations must handle failures gracefully
+### **📋 Task Execution Rules**
 
-### Security Prohibitions
-- Never expose database credentials in client-side code
-- Never skip input validation on API endpoints
-- Never store passwords in plain text
-- Never implement admin functionality without proper role checks
-- Never allow cross-user data access without permission verification
+#### **Pre-Development Checks**
+- [ ] 관련 파일들의 현재 구조 확인
+- [ ] 타입 정의 확인 (`src/types/`, `src/lib/db.ts`)
+- [ ] 기존 API 패턴 확인 (`src/app/api/`)
+- [ ] 데이터베이스 스키마 확인 (`database/schema.sql`)
 
-### Development Prohibitions
-- Never commit sensitive information to version control
-- Never deploy without testing authentication flows
-- Never modify production database directly
-- Never override TypeScript strict mode
-- Never use deprecated Clerk methods or components
+#### **Implementation Order**
+1. **Type Definitions**: 필요한 타입 정의/수정
+2. **Database Queries**: 데이터베이스 연산 구현
+3. **API Routes**: RESTful API 엔드포인트 구현
+4. **Frontend Components**: UI 컴포넌트 연동
+5. **Error Handling**: 에러 케이스 처리
+6. **Testing**: 전체 플로우 검증
 
-## MVP Feature Implementation Order
+#### **Quality Assurance**
+- **Type Check**: `npm run build`로 TypeScript 오류 확인
+- **Database Test**: 실제 데이터베이스 연결 및 쿼리 테스트
+- **Integration Test**: 전체 사용자 플로우 검증
+- **Log Verification**: 에러 로그가 올바른 위치에 저장되는지 확인
 
-### Phase 1 (Authentication & Basic Structure)
-1. Set up Clerk authentication with role selection
-2. Create basic project structure
-3. Set up Cloudflare D1 database
-4. Implement user role-based routing
+### **🎨 UI/UX Guidelines**
 
-### Phase 2 (Core Features)
-1. Trainer-member relationship management
-2. PT session management with signature feature
-3. Basic workout schedule management
-4. Simple progress tracking (weight/measurements)
+#### **Component Reusability**
+- **Shared Components**: `src/components/shared/` 우선 활용
+- **Role-specific**: 트레이너/회원 전용 컴포넌트는 각각의 폴더에 분리
+- **UI Library**: 기존 `src/components/ui/` 컴포넌트 재사용
 
-### Phase 3 (Enhanced Features)
-1. Diet management with photo upload
-2. Advanced progress tracking with charts
-3. Notification system
-4. Report generation for trainers
+#### **Responsive Design**
+- **Mobile First**: 모바일 환경 우선 고려
+- **Tailwind CSS**: 일관된 스타일링 시스템 사용
+- **Accessibility**: `src/components/shared/AccessibleNavigation.tsx` 패턴 준수
+
+### **⚡ Performance Optimization**
+
+#### **Database Optimization**
+- **Indexing**: 자주 조회되는 컬럼에 인덱스 활용
+- **Query Optimization**: JOIN 쿼리보다 개별 쿼리 우선 고려
+- **Caching**: Cloudflare Workers의 캐싱 메커니즘 활용
+
+#### **Frontend Optimization**
+- **Image Optimization**: `src/components/shared/OptimizedImage.tsx` 사용
+- **Performance Monitoring**: `src/components/shared/PerformanceMonitor.tsx` 활용
+- **Skeleton UI**: 로딩 상태에 `src/components/shared/SkeletonUI.tsx` 사용
+
+## Decision Trees
+
+### **When Adding New Feature**
+1. Does it require database changes? → Update `database/schema.sql` first
+2. Does it need new types? → Add to `src/types/[domain].ts`
+3. Is it role-specific? → Create in appropriate role folder
+4. Does it affect multiple users? → Implement notification system
+
+### **When Handling Errors**
+1. Is it a user input error? → Return 4xx with user-friendly message
+2. Is it a database error? → Log details, return 500 with generic message
+3. Is it an authentication error? → Return 401/403 with redirect
+4. Is it a system error? → Log to files, return 500
+
+### **When Modifying Database**
+1. Update schema in `database/schema.sql`
+2. Update TypeScript types in `src/lib/db.ts`
+3. Update related API routes
+4. Update frontend components
+5. Test integration flow
+
+## Common Anti-Patterns to Avoid
+
+### **❌ Wrong Patterns**
+```typescript
+// Mock data usage
+const mockData = { id: '1', name: 'Test User' }
+
+// Direct localStorage access  
+localStorage.setItem('userData', JSON.stringify(data))
+
+// Unsafe SQL queries
+const query = `SELECT * FROM users WHERE id = ${userId}`
+
+// Missing error handling
+const result = await dbManager.query('SELECT * FROM users')
+// No try-catch block
+
+// Wrong import paths
+import { User } from './types/user'  // Should use @/types/user
+```
+
+### **✅ Correct Patterns**
+```typescript
+// Database-first approach
+const user = await dbManager.first<User>('SELECT * FROM users WHERE clerk_id = ?', [clerkId])
+
+// Proper error handling
+try {
+  const result = await dbManager.execute('INSERT INTO users ...', params)
+  logger.info('User created successfully', { userId: result.meta?.last_row_id })
+} catch (error) {
+  logger.error('User creation failed', { error, clerkId })
+  return new Response('Failed to create user', { status: 500 })
+}
+
+// Correct import paths
+import { User } from '@/types/user'
+import { createDatabaseManager } from '@/lib/db'
+```
+
+---
+
+**Last Updated**: Database-first implementation phase  
+**Focus**: Real database integration, Mock data removal complete

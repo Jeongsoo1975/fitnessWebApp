@@ -92,7 +92,7 @@ async function fetchUserData(userId: string, request: Request): Promise<{
       return null
     }
 
-    const data = await response.json()
+    const data = await response.json() as any
     
     if (!data.success || !data.data) {
       return null
@@ -119,7 +119,7 @@ async function fetchUserData(userId: string, request: Request): Promise<{
         const profileResponse = await fetch(profileRequest)
         
         if (profileResponse.ok) {
-          const profileData = await profileResponse.json()
+          const profileData = await profileResponse.json() as any
           profileComplete = profileData.data?.isComplete || false
         }
       } catch (profileError) {

@@ -30,19 +30,20 @@ export function useKeyboardNavigation(
     }
   }, [])
 
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+  const handleKeyDown = useCallback((event: Event) => {
+    const keyboardEvent = event as KeyboardEvent
     updateFocusableElements()
     
-    switch (event.key) {
+    switch (keyboardEvent.key) {
       case 'Tab':
-        if (!event.shiftKey) {
+        if (!keyboardEvent.shiftKey) {
           // Tab - 다음 요소로
-          event.preventDefault()
+          keyboardEvent.preventDefault()
           const nextIndex = (currentIndex + 1) % focusableElements.current.length
           focusElement(nextIndex)
         } else {
           // Shift+Tab - 이전 요소로
-          event.preventDefault()
+          keyboardEvent.preventDefault()
           const prevIndex = currentIndex <= 0 
             ? focusableElements.current.length - 1 
             : currentIndex - 1
@@ -51,24 +52,24 @@ export function useKeyboardNavigation(
         break
       
       case 'ArrowDown':
-        event.preventDefault()
+        keyboardEvent.preventDefault()
         const downIndex = Math.min(currentIndex + 1, focusableElements.current.length - 1)
         focusElement(downIndex)
         break
       
       case 'ArrowUp':
-        event.preventDefault()
+        keyboardEvent.preventDefault()
         const upIndex = Math.max(currentIndex - 1, 0)
         focusElement(upIndex)
         break
       
       case 'Home':
-        event.preventDefault()
+        keyboardEvent.preventDefault()
         focusElement(0)
         break
       
       case 'End':
-        event.preventDefault()
+        keyboardEvent.preventDefault()
         focusElement(focusableElements.current.length - 1)
         break
     }
@@ -157,8 +158,9 @@ export function useFocusTrap(isActive: boolean = true) {
     return Array.from(containerRef.current.querySelectorAll(selector)) as HTMLElement[]
   }, [])
 
-  const trapFocus = useCallback((event: KeyboardEvent) => {
-    if (!isActive || event.key !== 'Tab') return
+  const trapFocus = useCallback((event: Event) => {
+    const keyboardEvent = event as KeyboardEvent
+    if (!isActive || keyboardEvent.key !== 'Tab') return
 
     const focusableElements = getFocusableElements()
     if (focusableElements.length === 0) return
@@ -166,16 +168,16 @@ export function useFocusTrap(isActive: boolean = true) {
     const firstElement = focusableElements[0]
     const lastElement = focusableElements[focusableElements.length - 1]
 
-    if (event.shiftKey) {
+    if (keyboardEvent.shiftKey) {
       // Shift + Tab
       if (document.activeElement === firstElement) {
-        event.preventDefault()
+        keyboardEvent.preventDefault()
         lastElement.focus()
       }
     } else {
       // Tab
       if (document.activeElement === lastElement) {
-        event.preventDefault()
+        keyboardEvent.preventDefault()
         firstElement.focus()
       }
     }
@@ -300,17 +302,18 @@ export function useKeyboardShortcuts(
   useEffect(() => {
     if (!enabled) return
 
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const handleKeyDown = (event: Event) => {
+      const keyboardEvent = event as KeyboardEvent
       const key = [
-        event.ctrlKey && 'ctrl',
-        event.altKey && 'alt',
-        event.shiftKey && 'shift',
-        event.metaKey && 'meta',
-        event.key.toLowerCase()
+        keyboardEvent.ctrlKey && 'ctrl',
+        keyboardEvent.altKey && 'alt',
+        keyboardEvent.shiftKey && 'shift',
+        keyboardEvent.metaKey && 'meta',
+        keyboardEvent.key.toLowerCase()
       ].filter(Boolean).join('+')
 
       if (shortcuts[key]) {
-        event.preventDefault()
+        keyboardEvent.preventDefault()
         shortcuts[key]()
       }
     }

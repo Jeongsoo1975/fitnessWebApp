@@ -54,7 +54,7 @@ export function useNotifications(): UseNotificationsReturn {
         throw new Error(`Failed to fetch notifications: ${response.status}`)
       }
 
-      const data = await response.json()
+      const data = await response.json() as any
       console.log('[useNotifications] API response data:', data)
       
       if (data.success) {
