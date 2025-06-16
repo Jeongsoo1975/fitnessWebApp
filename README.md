@@ -105,6 +105,45 @@ node database/test_local.js
 - 변수/함수: camelCase (`getUserWorkouts`)
 - 환경 변수: UPPER_SNAKE_CASE (`DATABASE_URL`)
 
+### React Hooks 의존성 관리
+
+**v2025.6.16 업데이트**: React Hooks 의존성 최적화 완료
+
+프로젝트에서 React Hooks 사용 시 다음 패턴을 준수하세요:
+
+#### ✅ 올바른 패턴
+```typescript
+// useCallback에서 primitive 값 의존성 사용
+const fetchData = useCallback(async () => {
+  if (!user?.id || !role) return
+  // API 호출 로직
+}, [user?.id, role])
+
+// useEffect에서 primitive 값 의존성 사용
+useEffect(() => {
+  // 조건부 검사 후 API 호출
+  if (user?.id && role) {
+    // 로직 실행
+  }
+}, [user?.id, role])
+```
+
+#### ❌ 피해야 할 패턴  
+```typescript
+// 객체 의존성으로 인한 무한 루프
+useEffect(() => {
+  fetchData()
+}, [fetchData, user, getToken]) // 객체 참조로 인한 문제
+```
+
+주요 개선 사항:
+- `ScheduleCalendar.tsx`: useCallback/useEffect 순환 의존성 해결
+- `TrainerMemberManager.tsx`: getToken 의존성 최적화  
+- 무한 리렌더링 방지 및 성능 개선
+- ESLint 규칙 준수
+
+상세한 내용은 `React_Hooks_Verification_Report.md` 참조
+
 ### 타입 안전성
 
 - 모든 컴포넌트에 TypeScript 인터페이스 정의
