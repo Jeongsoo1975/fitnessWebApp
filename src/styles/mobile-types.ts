@@ -39,8 +39,7 @@ export interface MobileContainerProps {
 export interface MobileInputProps {
   type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url'
   placeholder?: string
-  value?: string
-  onChange?: (value: string) => void
+  onChange?: (newValue: string) => void
   disabled?: boolean
   error?: boolean
   errorMessage?: string
@@ -61,7 +60,6 @@ export interface MobileNavItemProps {
 
 // Mobile Grid Props
 export interface MobileGridProps {
-  variant?: 'default' | 'auto'
   gap?: 'sm' | 'md' | 'lg'
   children: React.ReactNode
   className?: string
@@ -82,10 +80,10 @@ export interface ResponsiveValue<T> {
 
 // Touch Event Handlers
 export interface TouchHandlers {
-  onTouchStart?: (event: React.TouchEvent) => void
-  onTouchMove?: (event: React.TouchEvent) => void
-  onTouchEnd?: (event: React.TouchEvent) => void
-  onTouchCancel?: (event: React.TouchEvent) => void
+  onTouchStart?: (touchEvent: React.TouchEvent) => void
+  onTouchMove?: (touchEvent: React.TouchEvent) => void
+  onTouchEnd?: (touchEvent: React.TouchEvent) => void
+  onTouchCancel?: (touchEvent: React.TouchEvent) => void
 }
 
 // Animation Types
@@ -162,7 +160,7 @@ export type ClassNames = ClassNameValue | ClassNameValue[]
 // Component Factory Types
 export interface ComponentVariants<T extends string = string> {
   [key: string]: {
-    [variant in T]?: string
+    [variantKey in T]?: string
   }
 }
 

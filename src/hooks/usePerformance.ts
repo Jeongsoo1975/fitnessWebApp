@@ -139,7 +139,7 @@ export function useOptimizedScroll(callback: (scrollY: number) => void, deps: an
     })
 
     setIsScrolling(true)
-  }, deps)
+  }, [callback])
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout

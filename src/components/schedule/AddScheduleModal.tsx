@@ -7,7 +7,7 @@ interface AddScheduleModalProps {
   isOpen: boolean
   onClose: () => void
   selectedDate?: Date
-  onAddSchedule: (schedule: any) => void
+  onAddSchedule: (newSchedule: any) => void
   userRole?: 'trainer' | 'member'
   members?: Array<{ id: string; firstName: string; lastName: string }>
 }

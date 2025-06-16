@@ -19,7 +19,7 @@ interface MemberScheduleCalendarProps {
   schedules: Schedule[]
   selectedDate?: Date
   onDateSelect?: (date: Date) => void
-  onScheduleClick: (schedule: Schedule) => void
+  onScheduleClick: (clickedSchedule: Schedule) => void
 }
 
 export default function MemberScheduleCalendar({
@@ -47,7 +47,6 @@ export default function MemberScheduleCalendar({
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
   const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
   const startDate = new Date(firstDay)
   startDate.setDate(startDate.getDate() - firstDay.getDay()) // 일요일부터 시작
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useUser } from '@clerk/nextjs'
 
 interface TrainerNotification {
@@ -31,7 +31,7 @@ export function useTrainerNotifications(): UseTrainerNotificationsReturn {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!isLoaded || !user) {
       console.log('[useTrainerNotifications] User not loaded or not available')
       return
@@ -72,7 +72,7 @@ export function useTrainerNotifications(): UseTrainerNotificationsReturn {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [isLoaded, user])
 
   const markAsRead = async (notificationId: string): Promise<boolean> => {
     if (!isLoaded || !user) {
@@ -176,7 +176,7 @@ export function useTrainerNotifications(): UseTrainerNotificationsReturn {
 
   useEffect(() => {
     fetchNotifications()
-  }, [isLoaded, user])
+  }, [fetchNotifications])
 
   const unreadCount = notifications.filter(notification => !notification.isRead).length
   

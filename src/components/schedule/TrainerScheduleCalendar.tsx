@@ -19,8 +19,8 @@ interface TrainerScheduleCalendarProps {
   schedules: Schedule[]
   selectedDate?: Date
   onDateSelect?: (date: Date) => void
-  onScheduleClick: (schedule: Schedule) => void
-  onDeleteSchedule: (scheduleId: string) => void
+  onScheduleClick: (clickedSchedule: Schedule) => void
+  onDeleteSchedule: (scheduleIdToDelete: string) => void
 }
 
 export default function TrainerScheduleCalendar({
@@ -49,7 +49,6 @@ export default function TrainerScheduleCalendar({
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
   const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
   const startDate = new Date(firstDay)
   startDate.setDate(startDate.getDate() - firstDay.getDay()) // 일요일부터 시작
 

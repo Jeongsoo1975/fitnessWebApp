@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useUser } from '@clerk/nextjs'
 
 interface TrainerRequest {
@@ -30,7 +30,7 @@ export function useNotifications(): UseNotificationsReturn {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!isLoaded || !user) {
       console.log('[useNotifications] User not loaded or not available')
       return
@@ -71,11 +71,11 @@ export function useNotifications(): UseNotificationsReturn {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [isLoaded, user])
 
   useEffect(() => {
     fetchNotifications()
-  }, [isLoaded, user])
+  }, [fetchNotifications])
 
   const pendingCount = requests.filter(req => req.status === 'pending').length
   

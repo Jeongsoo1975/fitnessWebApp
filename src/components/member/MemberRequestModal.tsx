@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useAuth } from '@clerk/nextjs'
 import { XMarkIcon, UserIcon, EnvelopeIcon } from '@heroicons/react/24/outline'
 import { showToast } from '@/components/ui/Toast'
 
@@ -26,7 +25,6 @@ export default function MemberRequestModal({
   member,
   onSuccess 
 }: MemberRequestModalProps) {
-  const { getToken } = useAuth()
   const [message, setMessage] = useState('안녕하세요! 함께 운동하게 되어 기쁩니다. 건강한 운동 습관을 만들어보아요!')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)

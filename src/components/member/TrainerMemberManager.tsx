@@ -74,7 +74,7 @@ export default function TrainerMemberManager() {
   }, [getToken]) // ESLint 규칙에 따라 getToken 의존성 유지
 
   // 등록 요청 성공 처리
-  const handleRequestSent = (memberId: string) => {
+  const handleRequestSent = useCallback(() => {
     // 성공 알림 및 내 회원 목록 새로고침
     setError(null)
     
@@ -84,7 +84,7 @@ export default function TrainerMemberManager() {
         loadMyMembers()
       }
     }, 1000)
-  }
+  }, [activeTab, loadMyMembers])
 
   // 컴포넌트 마운트 시 내 회원 목록 로드
   useEffect(() => {
