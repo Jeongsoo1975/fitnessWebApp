@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Suspense } from 'react'
 import Link from 'next/link'
 
@@ -37,9 +37,9 @@ function TodayScheduleContent() {
 
   useEffect(() => {
     loadTodaySchedules()
-  }, [])
+  }, [loadTodaySchedules])
 
-  const loadTodaySchedules = async () => {
+  const loadTodaySchedules = useCallback(async () => {
     try {
       setLoading(true)
       const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD 형태
@@ -57,7 +57,7 @@ function TodayScheduleContent() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   // 스케줄 데이터를 ScheduleItem 형태로 변환
   const formatScheduleItems = (schedules: Schedule[]): ScheduleItem[] => {

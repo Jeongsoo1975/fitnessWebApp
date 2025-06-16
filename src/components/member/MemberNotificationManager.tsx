@@ -28,7 +28,7 @@ export default function MemberNotificationManager() {
   const [processingRequestId, setProcessingRequestId] = useState<string | null>(null)
 
   // 트레이너 요청 목록 로드
-  const loadRequests = async () => {
+  const loadRequests = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
@@ -51,10 +51,10 @@ export default function MemberNotificationManager() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [getToken])
 
   // 요청 상태 업데이트 (승인/거절)
-  const updateRequestStatus = async (requestId: string, status: 'approved' | 'rejected') => {
+  const updateRequestStatus = useCallback(async (requestId: string, status: 'approved' | 'rejected') => {
     try {
       setProcessingRequestId(requestId)
       setError(null)
@@ -97,7 +97,7 @@ export default function MemberNotificationManager() {
     } finally {
       setProcessingRequestId(null)
     }
-  }
+  }, [getToken])
 
   // 필터링된 요청 목록
   const filteredRequests = requests.filter(request => {
