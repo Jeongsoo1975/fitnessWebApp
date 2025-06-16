@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@clerk/nextjs'
 import { BellIcon, CheckIcon, XMarkIcon, ClockIcon } from '@heroicons/react/24/outline'
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid'
@@ -115,7 +115,7 @@ export default function MemberNotificationManager() {
     // 30초마다 새로운 요청 확인
     const interval = setInterval(loadRequests, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, [loadRequests])
 
   // 시간 포맷팅
   const formatDate = (dateString: string) => {

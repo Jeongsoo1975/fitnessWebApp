@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@clerk/nextjs'
 import { MagnifyingGlassIcon, UserPlusIcon } from '@heroicons/react/24/outline'
 import MemberRequestModal from './MemberRequestModal'
@@ -27,7 +27,7 @@ export default function MemberSearchComponent({ onRequestSent }: MemberSearchCom
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   // 회원 검색
-  const searchMembers = async () => {
+  const searchMembers = useCallback(async () => {
     if (!searchQuery.trim()) {
       setSearchResults([])
       return
@@ -56,7 +56,7 @@ export default function MemberSearchComponent({ onRequestSent }: MemberSearchCom
     } finally {
       setIsSearching(false)
     }
-  }
+  }, [searchQuery, getToken])
 
   // 등록 요청 모달 열기
   const handleRequestClick = (member: Member) => {
@@ -84,7 +84,7 @@ export default function MemberSearchComponent({ onRequestSent }: MemberSearchCom
     }, 500)
 
     return () => clearTimeout(timer)
-  }, [searchQuery])
+  }, [searchMembers])
 
   return (
     <>
