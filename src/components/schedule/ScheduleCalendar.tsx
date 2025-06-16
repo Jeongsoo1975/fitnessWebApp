@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { ClockIcon, UserIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/solid'
 import { useUser } from '@clerk/nextjs'
@@ -68,7 +68,7 @@ export default function ScheduleCalendar({ onAddSchedule }: ScheduleCalendarProp
   const [loading, setLoading] = useState(true)
 
   // API 호출 함수들
-  const fetchWorkouts = async () => {
+  const fetchWorkouts = useCallback(async () => {
     try {
       const response = await fetch('/api/workouts', {
         headers: {
@@ -100,9 +100,9 @@ export default function ScheduleCalendar({ onAddSchedule }: ScheduleCalendarProp
     } catch (error) {
       console.error('Failed to fetch workouts:', error)
     }
-  }
+  }, [user?.id, role])
 
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
     if (role === 'trainer') {
       try {
         // 임시 회원 데이터 - 추후 실제 API로 대체
@@ -116,7 +116,7 @@ export default function ScheduleCalendar({ onAddSchedule }: ScheduleCalendarProp
         console.error('Failed to fetch members:', error)
       }
     }
-  }
+  }, [role])
 
   useEffect(() => {
     if (user && role) {
@@ -125,7 +125,7 @@ export default function ScheduleCalendar({ onAddSchedule }: ScheduleCalendarProp
         setLoading(false)
       })
     }
-  }, [user, role])
+  }, [user?.id, role, fetchWorkouts, fetchMembers])
 
   // 기존 샘플 데이터 로직은 제거하고 위의 API 호출로 대체
 

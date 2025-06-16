@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@clerk/nextjs'
 import { useSearchParams } from 'next/navigation'
 import MemberSearchComponent from './MemberSearchComponent'
@@ -26,7 +26,7 @@ export default function TrainerMemberManager() {
   const [error, setError] = useState<string | null>(null)
 
   // 내 회원 목록 로드
-  const loadMyMembers = async () => {
+  const loadMyMembers = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
@@ -68,7 +68,7 @@ export default function TrainerMemberManager() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [getToken])
 
   // 등록 요청 성공 처리
   const handleRequestSent = (memberId: string) => {
@@ -88,7 +88,7 @@ export default function TrainerMemberManager() {
     if (activeTab === 'my-members') {
       loadMyMembers()
     }
-  }, [activeTab])
+  }, [activeTab, loadMyMembers])
 
   return (
     <div className="bg-white shadow rounded-lg">
