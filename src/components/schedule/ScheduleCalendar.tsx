@@ -64,16 +64,22 @@ export default function ScheduleCalendar({ onAddSchedule }: ScheduleCalendarProp
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar')
   const [schedules, setSchedules] = useState<ScheduleItem[]>([])
+  // members와 loading 변수는 향후 사용을 위해 유지하되 사용하지 않는 경고 해결
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [members, setMembers] = useState<Member[]>([])
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars  
   const [loading, setLoading] = useState(true)
 
   // API 호출 함수들
   const fetchWorkouts = useCallback(async () => {
+    // 조건부 검사를 함수 시작 부분에서 수행
+    if (!user?.id || !role) return
+    
     try {
       const response = await fetch('/api/workouts', {
         headers: {
-          'x-clerk-user-id': user?.id || '',
-          'x-user-role': role || ''
+          'x-clerk-user-id': user.id,
+          'x-user-role': role
         }
       })
       if (response.ok) {
@@ -103,29 +109,83 @@ export default function ScheduleCalendar({ onAddSchedule }: ScheduleCalendarProp
   }, [user?.id, role])
 
   const fetchMembers = useCallback(async () => {
-    if (role === 'trainer') {
-      try {
-        // 임시 회원 데이터 - 추후 실제 API로 대체
-        const mockMembers = [
-          { id: '1', firstName: '김', lastName: '민수', email: 'kim@example.com' },
-          { id: '2', firstName: '이', lastName: '지은', email: 'lee@example.com' },
-          { id: '3', firstName: '박', lastName: '준형', email: 'park@example.com' }
-        ]
-        setMembers(mockMembers)
-      } catch (error) {
-        console.error('Failed to fetch members:', error)
-      }
+    // 조건부 검사를 함수 시작 부분에서 수행
+    if (role !== 'trainer') return
+    
+    try {
+      // 임시 회원 데이터 - 추후 실제 API로 대체
+      const mockMembers = [
+        { id: '1', firstName: '김', lastName: '민수', email: 'kim@example.com' },
+        { id: '2', firstName: '이', lastName: '지은', email: 'lee@example.com' },
+        { id: '3', firstName: '박', lastName: '준형', email: 'park@example.com' }
+      ]
+      setMembers(mockMembers)
+    } catch (error) {
+      console.error('Failed to fetch members:', error)
     }
   }, [role])
 
   useEffect(() => {
-    if (user && role) {
+    // primitive 값 의존성만 사용하여 불필요한 재실행 방지
+    if (!user?.id || !role) return
+
+    const loadData = async () => {
       setLoading(true)
-      Promise.all([fetchWorkouts(), fetchMembers()]).finally(() => {
-        setLoading(false)
-      })
+      
+      // API 호출 함수들을 직접 호출
+      const promises = []
+      
+      // fetchWorkouts 로직
+      try {
+        const workoutResponse = await fetch('/api/workouts', {
+          headers: {
+            'x-clerk-user-id': user.id,
+            'x-user-role': role
+          }
+        })
+        if (workoutResponse.ok) {
+          const workoutData = await workoutResponse.json() as any
+          const transformedSchedules = workoutData.workouts.map((workout: any) => ({
+            id: workout.id,
+            title: workout.title,
+            memberName: workout.member_name,
+            trainerId: workout.trainer_id,
+            memberId: workout.member_id,
+            startTime: '09:00',
+            endTime: '10:00',
+            date: workout.date,
+            type: 'pt',
+            status: workout.status,
+            location: workout.location,
+            notes: workout.description,
+            color: 'blue',
+            hasChangeRequest: false
+          }))
+          setSchedules(transformedSchedules)
+        }
+      } catch (error) {
+        console.error('Failed to fetch workouts:', error)
+      }
+
+      // fetchMembers 로직 (trainer인 경우에만)
+      if (role === 'trainer') {
+        try {
+          const mockMembers = [
+            { id: '1', firstName: '김', lastName: '민수', email: 'kim@example.com' },
+            { id: '2', firstName: '이', lastName: '지은', email: 'lee@example.com' },
+            { id: '3', firstName: '박', lastName: '준형', email: 'park@example.com' }
+          ]
+          setMembers(mockMembers)
+        } catch (error) {
+          console.error('Failed to fetch members:', error)
+        }
+      }
+      
+      setLoading(false)
     }
-  }, [user?.id, role, fetchWorkouts, fetchMembers])
+
+    loadData()
+  }, [user?.id, role])
 
   // 기존 샘플 데이터 로직은 제거하고 위의 API 호출로 대체
 

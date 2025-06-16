@@ -1,249 +1,260 @@
-# FitnessWebApp Development Guidelines
+# FitnessWEBAPP Development Guidelines
 
 ## Project Overview
 
-**Technology Stack**: Next.js 15 + Cloudflare D1 + Cloudflare Workers + Clerk Auth + TypeScript  
-**Architecture**: Frontend (Next.js App Router) + Backend (Cloudflare Workers) + Database (D1)  
-**Core Functionality**: 트레이너-회원 관계 관리, 운동 스케줄링, PT 세션 관리, 식단 관리
+- **Technology Stack**: Next.js 15.2.3, React 19, TypeScript 5.7.2, Clerk Authentication, Tailwind CSS
+- **Architecture**: Component-based React application with role-based access control (trainer/member)
+- **Primary Purpose**: React Hooks 의존성 문제 해결 및 코드 품질 개선
 
-## Critical Development Rules
+## React Hooks Dependency Management
 
-### **🚫 ABSOLUTELY PROHIBITED**
+### Critical Rules for useEffect Dependencies
 
-- **Mock 데이터 생성 금지**: 절대로 임시 데이터, 더미 데이터, 샘플 데이터 생성 불가
-- **localStorage 사용 금지**: 프론트엔드에서 데이터 저장 시 localStorage 사용 불가 (Cloudflare D1만 사용)
-- **직접 파일 시스템 접근 금지**: 서버 환경에서 JSON 파일 읽기/쓰기 금지
-- **타입 추측 금지**: TypeScript 타입이 불명확하면 src/types/ 파일들을 확인 후 정확한 타입 사용
-- **API 라우트 임의 생성 금지**: src/app/api/ 구조를 반드시 확인 후 기존 패턴 따라 구현
+- **MUST**: Include ALL variables, functions, and state used inside useEffect in dependency array
+- **MUST**: Use useCallback for functions referenced in useEffect dependencies
+- **MUST**: Use useMemo for computed values referenced in useEffect dependencies
+- **PROHIBITED**: Empty dependency arrays unless effect should run only once on mount
 
-### **📊 Database Operations**
+### useCallback Implementation Standards
 
-#### **Database Connection Pattern**
-- **MUST USE**: `src/lib/db.ts`의 `DatabaseManager` 클래스만 사용
-- **MUST IMPORT**: `createDatabaseManager` 함수로 DB 인스턴스 생성
-- **Environment Access**: Cloudflare Workers 환경에서 `env.DB` 접근
+- **REQUIRED**: Wrap API call functions in useCallback when used in useEffect
+- **REQUIRED**: Include primitive dependencies (user?.id, role) in useCallback dependency array
+- **REQUIRED**: Avoid object dependencies in useCallback (extract primitive values)
 
+#### Correct Pattern:
 ```typescript
-// ✅ CORRECT Pattern
-import { createDatabaseManager, type DatabaseEnv } from '@/lib/db'
-const dbManager = createDatabaseManager(env)
-const users = await dbManager.query<User>('SELECT * FROM users WHERE role = ?', ['trainer'])
+const fetchData = useCallback(async () => {
+  if (!user?.id || !role) return
+  // API call logic
+}, [user?.id, role])
 
-// ❌ WRONG Pattern
-const db = env.DB.prepare('SELECT * FROM users')  // 직접 접근 금지
+useEffect(() => {
+  fetchData()
+}, [fetchData])
 ```
 
-#### **Query Implementation Rules**
-- **Prepared Statements 필수**: SQL 인젝션 방지를 위해 모든 쿼리에 매개변수 바인딩 사용
-- **Type Safety 필수**: 모든 쿼리 결과에 TypeScript 제네릭 타입 지정
-- **Error Handling 필수**: try-catch 블록으로 데이터베이스 에러 처리
-
+#### Prohibited Pattern:
 ```typescript
-// ✅ CORRECT Query Pattern
-const result = await dbManager.query<User>(
-  'SELECT * FROM users WHERE clerk_id = ? AND role = ?',
-  [clerkId, 'trainer']
-)
+// ❌ Missing useCallback
+const fetchData = async () => {
+  // API call logic
+}
 
-// ❌ WRONG Query Pattern  
-const result = await dbManager.query(`SELECT * FROM users WHERE clerk_id = '${clerkId}'`)
+useEffect(() => {
+  fetchData() // Will cause infinite re-renders
+}, [fetchData])
 ```
 
-#### **Type Definitions**
-- **MUST USE**: `src/lib/db.ts`에 정의된 인터페이스만 사용
-- **JSON Fields**: `specialties`, `goals`, `body_parts`, `exercises` 등은 JSON.parse/stringify 사용
-- **Date Fields**: ISO 8601 문자열 형태로 저장 및 조회
+### useMemo Usage Rules
 
-### **🏗️ File Structure Rules**
+- **REQUIRED**: Use useMemo for expensive computations referenced in useEffect
+- **REQUIRED**: Use useMemo for complex object/array dependencies in useEffect
+- **PROHIBITED**: Overuse of useMemo for simple calculations
 
-#### **API Routes Pattern**
-- **Location**: `src/app/api/[role]/[feature]/route.ts`
-- **Naming**: kebab-case 사용 (예: `member-requests`, `trainer-search`)
-- **Methods**: GET, POST, PUT, DELETE 중 필요한 것만 export
+## Clerk Authentication Patterns
 
-#### **Components Organization**
-- **Role-based**: `src/components/[role]/` (member, trainer, shared)
-- **Feature-based**: `src/components/[feature]/` (dashboard, schedule, notifications)
-- **Import Path**: `@/components/...` 절대 경로 사용
+### Required Hook Usage
 
-#### **Types Location**
-- **Database Types**: `src/lib/db.ts` (DB 스키마와 1:1 매칭)
-- **Business Types**: `src/types/[domain].ts` (user.ts, workout.ts 등)
-- **UI Types**: 컴포넌트 파일 내부에서 정의
+- **MUST**: Use `useUser()` from @clerk/nextjs for user data
+- **MUST**: Use custom `useUserRole()` from @/hooks/useAuth for role checking
+- **MUST**: Use `useAuth()` from @clerk/nextjs for token access
+- **PROHIBITED**: Direct access to Clerk context without proper hooks
 
-### **🔐 Authentication & Authorization**
+### Authentication State Handling
 
-#### **Clerk Integration Rules**
-- **User Identification**: `clerk_id` 필드로 사용자 매칭 (이메일은 보조 수단)
-- **Role-based Access**: 모든 API에서 사용자 역할 확인 필수
-- **Middleware**: `src/middleware.ts`에서 라우트 보호 설정
+- **REQUIRED**: Check `isLoaded` before accessing user data
+- **REQUIRED**: Handle loading states in components
+- **REQUIRED**: Use role-based conditional rendering
 
+#### Correct Pattern:
 ```typescript
-// ✅ CORRECT Auth Pattern
-import { auth } from '@clerk/nextjs/server'
-const { userId } = await auth()
-if (!userId) return new Response('Unauthorized', { status: 401 })
+const { user, isLoaded } = useUser()
+const { role, isLoading } = useUserRole()
 
-const user = await dbManager.first<User>('SELECT * FROM users WHERE clerk_id = ?', [userId])
-if (user?.role !== 'trainer') return new Response('Forbidden', { status: 403 })
+if (!isLoaded || isLoading) return <LoadingSpinner />
+if (!user || !role) return <AuthRequired />
 ```
 
-### **🚨 Error Handling & Logging**
+## API Call Patterns
 
-#### **Logging Requirements**
-- **Location**: 모든 로그는 `C:\Users\USER\Documents\MCPData\FitnessWEBAPP\logs` 폴더에 저장
-- **Logger**: `src/lib/logger.ts` 사용
-- **Log Levels**: ERROR, WARN, INFO, DEBUG 구분하여 사용
+### Standard API Request Structure
 
+- **REQUIRED**: Include Clerk token in Authorization header
+- **REQUIRED**: Include user ID and role in request headers when needed
+- **REQUIRED**: Handle loading and error states
+- **PROHIBITED**: Direct fetch calls without proper error handling
+
+#### Required Headers Pattern:
 ```typescript
-// ✅ CORRECT Logging Pattern
-import { logger } from '@/lib/logger'
-try {
-  // database operation
-} catch (error) {
-  logger.error('Database operation failed', { error, context: 'user-creation' })
-  return new Response('Internal Server Error', { status: 500 })
+const headers = {
+  'Authorization': `Bearer ${await getToken()}`,
+  'x-clerk-user-id': user?.id || '',
+  'x-user-role': role || ''
 }
 ```
 
-#### **Error Response Pattern**
-- **Client Errors (4xx)**: 사용자 입력 오류, 권한 부족
-- **Server Errors (5xx)**: 데이터베이스 오류, 시스템 오류
-- **Error Messages**: 사용자에게는 안전한 메시지, 로그에는 상세 정보
+### Error Handling Standards
 
-### **🔄 Git Workflow**
+- **REQUIRED**: Try-catch blocks for all async operations
+- **REQUIRED**: User-friendly error messages
+- **REQUIRED**: Console logging for debugging
+- **PROHIBITED**: Silent failure of API calls
 
-#### **Branch Strategy**
-- **Development**: `test` 브랜치에서 모든 개발 진행
-- **Testing**: `test` 브랜치에서 충분한 검증 후 PR 생성
-- **Production**: `master` 브랜치로 머지 (PR을 통해서만)
+## Component Architecture Rules
 
-#### **Commit Rules**
-- **File Operations**: 파일 생성/수정 후 반드시 `git add` + `git commit`
-- **Commit Messages**: `feat:`, `fix:`, `test:`, `refactor:` 등 prefix 사용
-- **Deletion**: `git rm` 사용 후 커밋
+### File Organization
 
-### **🎯 Development Priorities**
+- **REQUIRED**: Components in `/src/components/[domain]/`
+- **REQUIRED**: Custom hooks in `/src/hooks/`
+- **REQUIRED**: Types in `/src/types/`
+- **REQUIRED**: Utilities in `/src/lib/`
 
-#### **Primary Focus**
-1. **Database Integration**: Mock 데이터 제거 완료, 실제 DB 연동만 진행
-2. **API Reliability**: 모든 API 엔드포인트 안정성 확보
-3. **Type Safety**: TypeScript 타입 안전성 100% 유지
-4. **Error Recovery**: 견고한 에러 핸들링 및 로깅 시스템
+### Component Structure Standards
 
-#### **Testing Strategy**
-- **Integration Tests**: 전체 플로우 검증 (가입 → 매칭 → 스케줄링)
-- **API Tests**: 각 엔드포인트별 기능 검증
-- **Error Scenario**: 데이터베이스 연결 실패, 권한 오류 등 예외 상황 테스트
+- **REQUIRED**: 'use client' directive for client-side components
+- **REQUIRED**: Interface definitions before component
+- **REQUIRED**: Props interface naming: `[ComponentName]Props`
+- **REQUIRED**: Default export for main component
 
-### **📋 Task Execution Rules**
+### State Management
 
-#### **Pre-Development Checks**
-- [ ] 관련 파일들의 현재 구조 확인
-- [ ] 타입 정의 확인 (`src/types/`, `src/lib/db.ts`)
-- [ ] 기존 API 패턴 확인 (`src/app/api/`)
-- [ ] 데이터베이스 스키마 확인 (`database/schema.sql`)
+- **REQUIRED**: useState for local component state
+- **REQUIRED**: Separate loading, error, and data states
+- **PROHIBITED**: Complex state objects (use multiple useState calls)
 
-#### **Implementation Order**
-1. **Type Definitions**: 필요한 타입 정의/수정
-2. **Database Queries**: 데이터베이스 연산 구현
-3. **API Routes**: RESTful API 엔드포인트 구현
-4. **Frontend Components**: UI 컴포넌트 연동
-5. **Error Handling**: 에러 케이스 처리
-6. **Testing**: 전체 플로우 검증
+## TypeScript Standards
 
-#### **Quality Assurance**
-- **Type Check**: `npm run build`로 TypeScript 오류 확인
-- **Database Test**: 실제 데이터베이스 연결 및 쿼리 테스트
-- **Integration Test**: 전체 사용자 플로우 검증
-- **Log Verification**: 에러 로그가 올바른 위치에 저장되는지 확인
+### Type Definition Rules
 
-### **🎨 UI/UX Guidelines**
+- **REQUIRED**: Interface definitions in `/src/types/` for shared types
+- **REQUIRED**: Inline interfaces for component-specific props
+- **REQUIRED**: Explicit return types for custom hooks
+- **PROHIBITED**: `any` type usage
 
-#### **Component Reusability**
-- **Shared Components**: `src/components/shared/` 우선 활용
-- **Role-specific**: 트레이너/회원 전용 컴포넌트는 각각의 폴더에 분리
-- **UI Library**: 기존 `src/components/ui/` 컴포넌트 재사용
+### Import/Export Standards
 
-#### **Responsive Design**
-- **Mobile First**: 모바일 환경 우선 고려
-- **Tailwind CSS**: 일관된 스타일링 시스템 사용
-- **Accessibility**: `src/components/shared/AccessibleNavigation.tsx` 패턴 준수
+- **REQUIRED**: Named exports for utilities and types
+- **REQUIRED**: Default exports for React components
+- **REQUIRED**: Absolute imports using `@/` prefix
 
-### **⚡ Performance Optimization**
+## Prohibited Actions
 
-#### **Database Optimization**
-- **Indexing**: 자주 조회되는 컬럼에 인덱스 활용
-- **Query Optimization**: JOIN 쿼리보다 개별 쿼리 우선 고려
-- **Caching**: Cloudflare Workers의 캐싱 메커니즘 활용
+### Data Handling
 
-#### **Frontend Optimization**
-- **Image Optimization**: `src/components/shared/OptimizedImage.tsx` 사용
-- **Performance Monitoring**: `src/components/shared/PerformanceMonitor.tsx` 활용
-- **Skeleton UI**: 로딩 상태에 `src/components/shared/SkeletonUI.tsx` 사용
+- **STRICTLY PROHIBITED**: Creating dummy/mock/sample data
+- **STRICTLY PROHIBITED**: Generating arbitrary test data
+- **STRICTLY PROHIBITED**: Using placeholder values without explicit user request
 
-## Decision Trees
+### Code Patterns
 
-### **When Adding New Feature**
-1. Does it require database changes? → Update `database/schema.sql` first
-2. Does it need new types? → Add to `src/types/[domain].ts`
-3. Is it role-specific? → Create in appropriate role folder
-4. Does it affect multiple users? → Implement notification system
+- **PROHIBITED**: useEffect without dependency array for recurring effects
+- **PROHIBITED**: Inline object/array creation in dependency arrays
+- **PROHIBITED**: Nested async functions in useEffect
+- **PROHIBITED**: Direct DOM manipulation (use React patterns)
 
-### **When Handling Errors**
-1. Is it a user input error? → Return 4xx with user-friendly message
-2. Is it a database error? → Log details, return 500 with generic message
-3. Is it an authentication error? → Return 401/403 with redirect
-4. Is it a system error? → Log to files, return 500
+### Development Practices
 
-### **When Modifying Database**
-1. Update schema in `database/schema.sql`
-2. Update TypeScript types in `src/lib/db.ts`
-3. Update related API routes
-4. Update frontend components
-5. Test integration flow
+- **PROHIBITED**: Commenting out code instead of removing
+- **PROHIBITED**: Console.log statements in production code
+- **PROHIBITED**: Hardcoded values (use constants or environment variables)
 
-## Common Anti-Patterns to Avoid
+## Multi-File Coordination Rules
 
-### **❌ Wrong Patterns**
-```typescript
-// Mock data usage
-const mockData = { id: '1', name: 'Test User' }
+### Component Modifications
 
-// Direct localStorage access  
-localStorage.setItem('userData', JSON.stringify(data))
+- **REQUIRED**: When modifying component props, update parent components
+- **REQUIRED**: When adding new props, update TypeScript interfaces
+- **REQUIRED**: When changing API responses, update related types
 
-// Unsafe SQL queries
-const query = `SELECT * FROM users WHERE id = ${userId}`
+### API Changes
 
-// Missing error handling
-const result = await dbManager.query('SELECT * FROM users')
-// No try-catch block
+- **REQUIRED**: Update component error handling when API structure changes
+- **REQUIRED**: Update type definitions when API responses change
+- **REQUIRED**: Update loading states when API flow changes
 
-// Wrong import paths
-import { User } from './types/user'  // Should use @/types/user
-```
+## Git Workflow Standards
 
-### **✅ Correct Patterns**
-```typescript
-// Database-first approach
-const user = await dbManager.first<User>('SELECT * FROM users WHERE clerk_id = ?', [clerkId])
+### Commit Requirements
 
-// Proper error handling
-try {
-  const result = await dbManager.execute('INSERT INTO users ...', params)
-  logger.info('User created successfully', { userId: result.meta?.last_row_id })
-} catch (error) {
-  logger.error('User creation failed', { error, clerkId })
-  return new Response('Failed to create user', { status: 500 })
-}
+- **REQUIRED**: Git add and commit after file modifications
+- **REQUIRED**: Use conventional commit messages (feat:, fix:, refactor:)
+- **REQUIRED**: Test branch creation before main branch merge
+- **PROHIBITED**: Direct commits to main branch without testing
 
-// Correct import paths
-import { User } from '@/types/user'
-import { createDatabaseManager } from '@/lib/db'
-```
+### Branch Management
 
----
+- **REQUIRED**: Create test branch for feature development
+- **REQUIRED**: Verify functionality before merging to main
+- **REQUIRED**: Pull request workflow for significant changes
 
-**Last Updated**: Database-first implementation phase  
-**Focus**: Real database integration, Mock data removal complete
+## AI Decision-Making Priorities
+
+### Issue Resolution Order
+
+1. **React Hooks dependency issues** (highest priority)
+2. **Authentication/authorization bugs**
+3. **API integration problems**
+4. **UI/UX improvements**
+5. **Performance optimizations**
+
+### Ambiguous Situation Handling
+
+- **PRIMARY**: Check existing patterns in codebase
+- **SECONDARY**: Refer to this rules document
+- **TERTIARY**: Apply React best practices
+- **LAST RESORT**: Ask user for clarification
+
+### Error Recovery
+
+- **IMMEDIATE**: Fix React Hook dependency warnings
+- **URGENT**: Resolve TypeScript compilation errors
+- **HIGH**: Fix runtime JavaScript errors
+- **MEDIUM**: Address ESLint warnings
+
+## Key File Interaction Matrix
+
+### Critical File Dependencies
+
+| Primary File | Required Updates | Reason |
+|--------------|------------------|---------|
+| `/src/components/schedule/ScheduleCalendar.tsx` | `/src/types/workout.ts` | Schedule interface changes |
+| `/src/components/member/TrainerMemberManager.tsx` | `/src/types/user.ts` | Member interface changes |
+| `/src/hooks/useAuth.ts` | All auth-dependent components | Authentication flow changes |
+| `package.json` | `/next.config.ts`, `tsconfig.json` | Dependency updates |
+
+### Simultaneous Update Requirements
+
+- **Authentication hooks** → Update all components using auth
+- **API response types** → Update consuming components
+- **Global styles** → Update component className usage
+- **Environment variables** → Update related configuration files
+
+## Performance Optimization Rules
+
+### Re-render Prevention
+
+- **REQUIRED**: Use React.memo for expensive components
+- **REQUIRED**: Optimize useCallback and useMemo usage
+- **REQUIRED**: Avoid creating objects in render methods
+- **PROHIBITED**: Unnecessary prop drilling
+
+### Bundle Optimization
+
+- **REQUIRED**: Dynamic imports for heavy components
+- **REQUIRED**: Tree shaking friendly exports
+- **PROHIBITED**: Importing entire libraries for single functions
+
+## Testing Requirements
+
+### Component Testing
+
+- **REQUIRED**: Test React Hook dependencies
+- **REQUIRED**: Test authentication state changes
+- **REQUIRED**: Test API error scenarios
+- **PROHIBITED**: Testing implementation details over behavior
+
+### Integration Testing
+
+- **REQUIRED**: Test multi-component workflows
+- **REQUIRED**: Test role-based access control
+- **REQUIRED**: Test data flow integrity

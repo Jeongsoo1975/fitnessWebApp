@@ -31,10 +31,13 @@ export default function TrainerMemberManager() {
       setIsLoading(true)
       setError(null)
       
+      // getToken을 함수 내부에서 직접 호출하여 의존성 제거
+      const token = await getToken()
+      
       // 실제 승인된 회원 목록을 가져오기 위한 API 호출
       const response = await fetch('/api/trainer/members', {
         headers: {
-          'Authorization': `Bearer ${await getToken()}`
+          'Authorization': `Bearer ${token}`
         }
       })
 
@@ -68,7 +71,7 @@ export default function TrainerMemberManager() {
     } finally {
       setIsLoading(false)
     }
-  }, [getToken])
+  }, [getToken]) // ESLint 규칙에 따라 getToken 의존성 유지
 
   // 등록 요청 성공 처리
   const handleRequestSent = (memberId: string) => {
@@ -85,10 +88,11 @@ export default function TrainerMemberManager() {
 
   // 컴포넌트 마운트 시 내 회원 목록 로드
   useEffect(() => {
+    // activeTab 변경 시에만 실행되도록 함수 의존성 포함
     if (activeTab === 'my-members') {
       loadMyMembers()
     }
-  }, [activeTab, loadMyMembers])
+  }, [activeTab, loadMyMembers]) // ESLint 규칙에 따라 loadMyMembers 의존성 유지
 
   return (
     <div className="bg-white shadow rounded-lg">
