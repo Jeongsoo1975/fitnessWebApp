@@ -43,38 +43,6 @@ export default function OptimizedImage({
     placeholder
   )
 
-  // 반응형 이미지 소스 생성 - useCallback으로 메모이제이션
-  const generateResponsiveSrc = useCallback((originalSrc: string, targetWidth?: number) => {
-    if (!targetWidth) return originalSrc
-    
-    // Next.js Image Optimization API 사용 (실제 구현에서는 이미지 CDN 사용)
-    const params = new URLSearchParams({
-      url: originalSrc,
-      w: targetWidth.toString(),
-      q: quality.toString()
-    })
-    
-    return `/api/image?${params.toString()}`
-  }, [quality])
-
-  // 모바일/데스크톱에 따른 최적 크기 계산 - useCallback으로 메모이제이션
-  const getOptimalSize = useCallback(() => {
-    const devicePixelRatio = typeof window !== 'undefined' 
-      ? window.devicePixelRatio || 1 
-      : 1
-    
-    if (isMobile) {
-      // 모바일에서는 화면 너비의 최대 90%
-      const maxWidth = Math.min(width || 400, window.innerWidth * 0.9)
-      return Math.round(maxWidth * devicePixelRatio)
-    }
-    
-    // 데스크톱에서는 원본 크기 또는 지정된 크기
-    return width ? Math.round(width * devicePixelRatio) : undefined
-  }, [isMobile, width])
-
-  const optimalSize = getOptimalSize()
-
   // handleLoad 함수를 useCallback으로 메모이제이션하여 의존성 안정화
   const handleLoad = useCallback(() => {
     setIsLoaded(true)
