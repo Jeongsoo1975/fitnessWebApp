@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useKeyboardNavigation, useScreenReader, useAriaState } from '@/hooks/useAccessibility'
@@ -53,108 +53,113 @@ export default function AccessibleNavigation({ userRole, onNavigate }: Accessibl
   // 키보드 네비게이션 설정
   const { focusElement } = useKeyboardNavigation(['a', 'button'])
 
-  // 역할별 네비게이션 메뉴
-  const navigationItems: NavigationItem[] = userRole === 'trainer' ? [
-    {
-      id: 'dashboard',
-      label: '대시보드',
-      href: '/trainer/dashboard',
-      icon: HomeIcon,
-      iconSolid: HomeIconSolid,
-      ariaLabel: '트레이너 대시보드로 이동'
-    },
-    {
-      id: 'schedule',
-      label: '일정 관리',
-      href: '/schedule',
-      icon: CalendarIcon,
-      iconSolid: CalendarIconSolid,
-      badge: 3,
-      ariaLabel: '일정 관리 페이지로 이동, 3개의 새로운 일정'
-    },
-    {
-      id: 'members',
-      label: '회원 관리',
-      href: '/trainer/members',
-      icon: UserCircleIcon,
-      iconSolid: UserCircleIconSolid,
-      ariaLabel: '회원 관리 페이지로 이동'
-    },
-    {
-      id: 'analytics',
-      label: '분석',
-      href: '/trainer/analytics',
-      icon: ChartBarIcon,
-      iconSolid: ChartBarIconSolid,
-      ariaLabel: '분석 페이지로 이동'
-    },
-    {
-      id: 'settings',
-      label: '설정',
-      href: '/trainer/settings',
-      icon: Cog6ToothIcon,
-      iconSolid: Cog6ToothIconSolid,
-      ariaLabel: '설정 페이지로 이동'
-    }
-  ] : [
-    {
-      id: 'dashboard',
-      label: '대시보드',
-      href: '/member/dashboard',
-      icon: HomeIcon,
-      iconSolid: HomeIconSolid,
-      ariaLabel: '회원 대시보드로 이동'
-    },
-    {
-      id: 'workout',
-      label: '운동하기',
-      href: '/workout',
-      icon: ChartBarIcon,
-      iconSolid: ChartBarIconSolid,
-      ariaLabel: '운동 추적 페이지로 이동'
-    },
-    {
-      id: 'schedule',
-      label: '일정',
-      href: '/schedule',
-      icon: CalendarIcon,
-      iconSolid: CalendarIconSolid,
-      ariaLabel: '내 일정 보기'
-    },
-    {
-      id: 'profile',
-      label: '프로필',
-      href: '/member/profile',
-      icon: UserCircleIcon,
-      iconSolid: UserCircleIconSolid,
-      ariaLabel: '내 프로필 보기'
-    },
-    {
-      id: 'settings',
-      label: '설정',
-      href: '/member/settings',
-      icon: Cog6ToothIcon,
-      iconSolid: Cog6ToothIconSolid,
-      ariaLabel: '설정 페이지로 이동'
-    }
-  ]
+  // 역할별 네비게이션 메뉴를 useMemo로 메모이제이션하여 성능 최적화
+  const navigationItems: NavigationItem[] = useMemo(() => {
+    return userRole === 'trainer' ? [
+      {
+        id: 'dashboard',
+        label: '대시보드',
+        href: '/trainer/dashboard',
+        icon: HomeIcon,
+        iconSolid: HomeIconSolid,
+        ariaLabel: '트레이너 대시보드로 이동'
+      },
+      {
+        id: 'schedule',
+        label: '일정 관리',
+        href: '/schedule',
+        icon: CalendarIcon,
+        iconSolid: CalendarIconSolid,
+        badge: 3,
+        ariaLabel: '일정 관리 페이지로 이동, 3개의 새로운 일정'
+      },
+      {
+        id: 'members',
+        label: '회원 관리',
+        href: '/trainer/members',
+        icon: UserCircleIcon,
+        iconSolid: UserCircleIconSolid,
+        ariaLabel: '회원 관리 페이지로 이동'
+      },
+      {
+        id: 'analytics',
+        label: '분석',
+        href: '/trainer/analytics',
+        icon: ChartBarIcon,
+        iconSolid: ChartBarIconSolid,
+        ariaLabel: '분석 페이지로 이동'
+      },
+      {
+        id: 'settings',
+        label: '설정',
+        href: '/trainer/settings',
+        icon: Cog6ToothIcon,
+        iconSolid: Cog6ToothIconSolid,
+        ariaLabel: '설정 페이지로 이동'
+      }
+    ] : [
+      {
+        id: 'dashboard',
+        label: '대시보드',
+        href: '/member/dashboard',
+        icon: HomeIcon,
+        iconSolid: HomeIconSolid,
+        ariaLabel: '회원 대시보드로 이동'
+      },
+      {
+        id: 'workout',
+        label: '운동하기',
+        href: '/workout',
+        icon: ChartBarIcon,
+        iconSolid: ChartBarIconSolid,
+        ariaLabel: '운동 추적 페이지로 이동'
+      },
+      {
+        id: 'schedule',
+        label: '일정',
+        href: '/schedule',
+        icon: CalendarIcon,
+        iconSolid: CalendarIconSolid,
+        ariaLabel: '내 일정 보기'
+      },
+      {
+        id: 'profile',
+        label: '프로필',
+        href: '/member/profile',
+        icon: UserCircleIcon,
+        iconSolid: UserCircleIconSolid,
+        ariaLabel: '내 프로필 보기'
+      },
+      {
+        id: 'settings',
+        label: '설정',
+        href: '/member/settings',
+        icon: Cog6ToothIcon,
+        iconSolid: Cog6ToothIconSolid,
+        ariaLabel: '설정 페이지로 이동'
+      }
+    ]
+  }, [userRole])
 
-  const isActive = (href: string) => {
+  // 활성 상태 확인 함수를 useCallback으로 메모이제이션
+  const isActive = useCallback((href: string) => {
     return pathname === href || pathname.startsWith(href + '/')
-  }
+  }, [pathname])
 
-  const handleNavigation = (item: NavigationItem) => {
+  // 네비게이션 핸들러를 useCallback으로 메모이제이션
+  const handleNavigation = useCallback((item: NavigationItem) => {
     announceNavigation(item.label)
     onNavigate?.(item.href)
     setIsMobileMenuOpen(false)
-  }
+  }, [announceNavigation, onNavigate])
 
-  const toggleMobileMenu = () => {
+  // 모바일 메뉴 토글 함수를 useCallback으로 메모이제이션
+  const toggleMobileMenu = useCallback(() => {
     setIsMobileMenuOpen(!isMobileMenuOpen)
     // updateAriaState는 타입이 제한되어 있으므로 직접 aria-expanded는 컴포넌트에서 처리
-  }
+  }, [isMobileMenuOpen])
 
-  // 키보드 단축키 설정
+  // 키보드 단축키 설정 - 의존성 배열 최적화
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Alt + 숫자키로 메뉴 바로가기

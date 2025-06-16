@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLazyImage } from '@/hooks/usePerformance'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 
@@ -42,8 +42,8 @@ export default function OptimizedImage({
     placeholder
   )
 
-  // 반응형 이미지 소스 생성
-  const generateResponsiveSrc = (originalSrc: string, targetWidth?: number) => {
+  // 반응형 이미지 소스 생성 - useCallback으로 메모이제이션
+  const generateResponsiveSrc = useCallback((originalSrc: string, targetWidth?: number) => {
     if (!targetWidth) return originalSrc
     
     // Next.js Image Optimization API 사용 (실제 구현에서는 이미지 CDN 사용)
@@ -54,10 +54,10 @@ export default function OptimizedImage({
     })
     
     return `/api/image?${params.toString()}`
-  }
+  }, [quality])
 
-  // 모바일/데스크톱에 따른 최적 크기 계산
-  const getOptimalSize = () => {
+  // 모바일/데스크톱에 따른 최적 크기 계산 - useCallback으로 메모이제이션
+  const getOptimalSize = useCallback(() => {
     const devicePixelRatio = typeof window !== 'undefined' 
       ? window.devicePixelRatio || 1 
       : 1
@@ -70,22 +70,24 @@ export default function OptimizedImage({
     
     // 데스크톱에서는 원본 크기 또는 지정된 크기
     return width ? Math.round(width * devicePixelRatio) : undefined
-  }
+  }, [isMobile, width])
 
   const optimalSize = getOptimalSize()
   const optimizedSrc = generateResponsiveSrc(src, optimalSize)
 
-  const handleLoad = () => {
+  // handleLoad 함수를 useCallback으로 메모이제이션하여 의존성 안정화
+  const handleLoad = useCallback(() => {
     setIsLoaded(true)
     onLoad?.()
-  }
+  }, [onLoad])
 
-  const handleError = () => {
+  // handleError 함수를 useCallback으로 메모이제이션
+  const handleError = useCallback(() => {
     setHasError(true)
     onError?.()
-  }
+  }, [onError])
 
-  // 우선순위가 높은 이미지는 즉시 로드
+  // 우선순위가 높은 이미지는 즉시 로드 - 의존성 배열에 handleLoad 추가
   useEffect(() => {
     if (priority && imgRef.current) {
       const img = imgRef.current
@@ -93,7 +95,7 @@ export default function OptimizedImage({
         handleLoad()
       }
     }
-  }, [priority])
+  }, [priority, handleLoad])
 
   return (
     <div 
@@ -187,9 +189,10 @@ export function AvatarImage({
     xl: 'w-16 h-16 text-lg'
   }
 
-  const handleError = () => {
+  // handleError 함수를 useCallback으로 메모이제이션
+  const handleError = useCallback(() => {
     setHasError(true)
-  }
+  }, [])
 
   if (!src || hasError) {
     // 폴백 아바타 (이니셜 또는 기본 아이콘)
