@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import Image from 'next/image'
 import { useLazyImage } from '@/hooks/usePerformance'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 
@@ -73,7 +74,6 @@ export default function OptimizedImage({
   }, [isMobile, width])
 
   const optimalSize = getOptimalSize()
-  const optimizedSrc = generateResponsiveSrc(src, optimalSize)
 
   // handleLoad 함수를 useCallback으로 메모이제이션하여 의존성 안정화
   const handleLoad = useCallback(() => {
@@ -128,27 +128,27 @@ export default function OptimizedImage({
         </div>
       )}
 
-      {/* 실제 이미지 */}
+      {/* Next.js Image 컴포넌트 사용 */}
       {(priority || shouldLoad) && (
-        <img
+        <Image
           ref={imgRef}
-          src={priority ? optimizedSrc : imageSrc || optimizedSrc}
+          src={priority ? src : imageSrc || src}
           alt={alt}
-          width={width}
-          height={height}
-          sizes={sizes}
+          width={width || 400}
+          height={height || 300}
+          sizes={sizes || (isMobile ? '90vw' : `${width}px`)}
+          quality={quality}
+          priority={priority}
           className={`transition-opacity duration-300 ${
             isLoaded ? 'opacity-100' : 'opacity-0'
           }`}
-          onLoad={handleLoad}
-          onError={handleError}
-          loading={priority ? 'eager' : 'lazy'}
-          decoding="async"
           style={{
             width: '100%',
             height: '100%',
             objectFit: 'cover'
           }}
+          onLoad={handleLoad}
+          onError={handleError}
         />
       )}
 
@@ -189,6 +189,13 @@ export function AvatarImage({
     xl: 'w-16 h-16 text-lg'
   }
 
+  const sizePixels = {
+    sm: 32,
+    md: 40,
+    lg: 48,
+    xl: 64
+  }
+
   // handleError 함수를 useCallback으로 메모이제이션
   const handleError = useCallback(() => {
     setHasError(true)
@@ -214,14 +221,17 @@ export function AvatarImage({
   }
 
   return (
-    <OptimizedImage
-      src={src}
-      alt={alt}
-      width={size === 'sm' ? 32 : size === 'md' ? 40 : size === 'lg' ? 48 : 64}
-      height={size === 'sm' ? 32 : size === 'md' ? 40 : size === 'lg' ? 48 : 64}
-      className={`${sizeClasses[size]} ${className} rounded-full object-cover`}
-      priority={false}
-      onError={handleError}
-    />
+    <div className={`${sizeClasses[size]} ${className} rounded-full overflow-hidden`}>
+      <Image
+        src={src}
+        alt={alt}
+        width={sizePixels[size]}
+        height={sizePixels[size]}
+        className="w-full h-full object-cover"
+        priority={false}
+        sizes={`${sizePixels[size]}px`}
+        onError={handleError}
+      />
+    </div>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { memo } from 'react'
+import Image from 'next/image'
 import { SkeletonTrainerInfo } from '@/components/shared/SkeletonUI'
 
 interface TrainerData {
@@ -40,10 +41,14 @@ const TrainerInfo = memo(function TrainerInfo({
         <div className="flex items-center space-x-4">
           <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
             {trainer.avatar ? (
-              <img 
+              <Image 
                 src={trainer.avatar} 
                 alt={trainer.name}
+                width={48}
+                height={48}
                 className="w-12 h-12 rounded-full object-cover"
+                priority={true}
+                sizes="48px"
               />
             ) : (
               <span className="text-blue-600 font-medium text-lg">
